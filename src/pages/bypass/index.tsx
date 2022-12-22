@@ -1,17 +1,17 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { trpc } from "../../utils/trpc";
 
 
 const Home: NextPage = () => {
   const bypassLinkRef = useRef<HTMLInputElement>(null);
   const resultLinkRef = useRef<HTMLAnchorElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const tBypassLink = trpc.bypass.bypassLink.useMutation();
 
   const validBypassLinks = ["linkvertise.com", "up-to-down.net", "link-center.net", "link-to.net", "direct-link.net", "file-link.net", "link-hub.net", "link-target.net"];
-
 
   const bypassLink = (link: string) => {
     tBypassLink.mutate(link, {
@@ -19,6 +19,7 @@ const Home: NextPage = () => {
         if (data && resultLinkRef.current) {
           resultLinkRef.current.setAttribute("href", data);
           resultLinkRef.current.innerText = data;
+          setIsLoading(false);
         }
       },
       onError: (error) => {
@@ -27,15 +28,23 @@ const Home: NextPage = () => {
     });
   };
 
+  function handleBypass(link: string) {
+    if (bypassLinkRef.current === null || resultLinkRef.current === null) { return; }
+    if (validBypassLinks.some((l) => link.includes(l))) {
+      bypassLinkRef.current.setAttribute("placeholder", link);
+      resultLinkRef.current.innerText = "";
+      setIsLoading(true);
+      bypassLink(link);
+    } else {
+      alert("Invalid linkvertise link: " + link);
+    }
+  }
+  
+
   const handleFromClipboard = () => {
     navigator.clipboard.readText()
       .then(text => {
-        if (validBypassLinks.some((l) => text.includes(l))) {
-          bypassLinkRef.current?.setAttribute("placeholder", text);
-          bypassLink(text);
-        } else {
-          alert("Invalid linkvertise link: " + text);
-        }
+        handleBypass(text);
       })
       .catch(err => {
         console.error('Failed to read clipboard contents: ', err);
@@ -45,11 +54,7 @@ const Home: NextPage = () => {
   const handleSubmit = () => {
     const link = bypassLinkRef.current?.value;
     if (link) {
-      if (validBypassLinks.some((l) => link.includes(l))) {
-        bypassLink(link);
-      } else {
-        alert("Invalid linkvertise link");
-      }
+      handleBypass(link);
     }
   };
 
@@ -69,6 +74,10 @@ const Home: NextPage = () => {
             <button onClick={handleFromClipboard} className="bg-gray-800 text-white px-4 py-2 rounded-md">From clipboard</button>
             <button onClick={handleSubmit} className="bg-sky-600 text-white px-4 py-2 rounded-md">Do damage</button>
           </div>
+
+          <p className="text-gray-400">
+            {isLoading && "Loading..."}
+          </p>
           <a className="text-lg text-cyan-300 underline" href="#" ref={resultLinkRef}></a>
         </div>
       </main>
