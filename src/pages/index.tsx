@@ -6,7 +6,7 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Create T3 App</title>
+        <title>Jonas Lien Sampaio da Silva</title>
         <meta name="description" content="Jonas Silva personal website" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
