@@ -1,10 +1,8 @@
 import { z } from "zod";
 
 import { router, publicProcedure } from "../trpc";
-import { link } from "fs";
 
 const bypassAPI = "https://bypass.pm/bypass2?url=";
-
 
 const doBypass = async (link: string) => {
   const res = await fetch(bypassAPI + link);

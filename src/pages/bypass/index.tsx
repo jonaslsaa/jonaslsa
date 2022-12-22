@@ -10,10 +10,16 @@ const Home: NextPage = () => {
 
   const tBypassLink = trpc.bypass.bypassLink.useMutation();
 
+  const validBypassLinks = ["linkvertise.com", "up-to-down.net", "link-center.net", "link-to.net", "direct-link.net", "file-link.net", "link-hub.net", "link-target.net"];
+
+
   const bypassLink = (link: string) => {
     tBypassLink.mutate(link, {
       onSuccess: (data) => {
-        console.log(data);
+        if (data && resultLinkRef.current) {
+          resultLinkRef.current.setAttribute("href", data);
+          resultLinkRef.current.innerText = data;
+        }
       },
       onError: (error) => {
         console.log(error);
@@ -24,7 +30,12 @@ const Home: NextPage = () => {
   const handleFromClipboard = () => {
     navigator.clipboard.readText()
       .then(text => {
-        console.log('Pasted content: ', text);
+        if (validBypassLinks.some((l) => text.includes(l))) {
+          bypassLinkRef.current?.setAttribute("placeholder", text);
+          bypassLink(text);
+        } else {
+          alert("Invalid linkvertise link: " + text);
+        }
       })
       .catch(err => {
         console.error('Failed to read clipboard contents: ', err);
@@ -32,7 +43,14 @@ const Home: NextPage = () => {
   };
 
   const handleSubmit = () => {
-    bypassLink("https://linkvertise.com/254878/asvx56/1")
+    const link = bypassLinkRef.current?.value;
+    if (link) {
+      if (validBypassLinks.some((l) => link.includes(l))) {
+        bypassLink(link);
+      } else {
+        alert("Invalid linkvertise link");
+      }
+    }
   };
 
 
@@ -49,7 +67,7 @@ const Home: NextPage = () => {
           <input ref={bypassLinkRef} type="text" className="bg-gray-300 px-2 py-2 my-2 rounded-sm w-full max-w-md text-gray-700" placeholder="Paste your link here..."></input>
           <div className="flex flex-row gap-2">
             <button onClick={handleFromClipboard} className="bg-gray-800 text-white px-4 py-2 rounded-md">From clipboard</button>
-            <button onClick={handleSubmit} className="bg-sky-600 text-white px-4 py-2 rounded-md">Submit</button>
+            <button onClick={handleSubmit} className="bg-sky-600 text-white px-4 py-2 rounded-md">Do damage</button>
           </div>
           <a className="text-lg text-cyan-300 underline" href="#" ref={resultLinkRef}></a>
         </div>
