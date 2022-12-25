@@ -1,10 +1,11 @@
 import { type NextPage } from "next";
 import Head from "next/head";
+import { prisma } from "../../server/db/client";
 
 export async function getServerSideProps(context : any) {
   // Get shortned link
   console.log(context.query.slug)
-  const shortenedLink = await prisma!.shortenedLink.findUnique({
+  const shortenedLink = await prisma.shortenedLink.findUnique({
     where: {
       slug: context.query.slug
     }
