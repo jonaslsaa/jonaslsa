@@ -64,3 +64,12 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model ShortenedLink {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  url       String
+  slug      String   @unique
+  clicks    Int      @default(0)
+}
