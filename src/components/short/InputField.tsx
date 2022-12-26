@@ -10,11 +10,24 @@ const InputField: FC<InputFieldProps> = ({handleLink}) => {
 
     const linkRef = useRef<HTMLInputElement>(null);
 
+    function isValidLink(link: string) {
+        const expression = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
+        const regex = new RegExp(expression);
+        if (link.length <= 3) return false;
+        if (link.startsWith("https://") || link.startsWith("http://") || link.startsWith("www.")) {
+            return true;
+        }
+        if (link.match(regex)) {
+            return true;
+        }
+        return false;
+    }
+
     function handleSubmit() {
         if (!linkRef.current) return;
         const link = linkRef.current.value.trim();
         if (link.length === 0) return;
-        if (link.startsWith("https://") || link.startsWith("http://") || link.startsWith("www.")) {
+        if (isValidLink(link)) {
             handleLink(link);
         } else {
             alert("Invalid link: " + link);
@@ -27,7 +40,7 @@ const InputField: FC<InputFieldProps> = ({handleLink}) => {
             // check if string is valid link with regex
             text = text.trim();
             if (text.length === 0) return;
-            if (text.startsWith("https://") || text.startsWith("http://") || text.startsWith("www.")) {
+            if (isValidLink(text)) {
                 handleLink(text);
             }
         })

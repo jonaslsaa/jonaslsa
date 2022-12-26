@@ -6,7 +6,7 @@ import InputField from "../../components/short/InputField";
 import ShowShorten from "../../components/short/ShowShorten";
 
 
-const Home: NextPage = () => {
+const LinkShortener: NextPage = () => {
 
   const [shortLink, setShortLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -48,4 +48,4 @@ const Home: NextPage = () => {
   );
 };
 
-export default Home;
+export default LinkShortener;

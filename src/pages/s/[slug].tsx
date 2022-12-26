@@ -13,7 +13,11 @@ export async function getServerSideProps(context : { query: { slug: string } }) 
   if (!shortenedLink) {
     return { props: { } }
   }
-  return { redirect: { destination: shortenedLink.url, permanent: false } }
+  let dest = shortenedLink.url;
+  if (!dest.startsWith("http")) {
+    dest = "http://" + dest;
+  }
+  return { redirect: { destination: dest, permanent: false } }
 }
 
 type ServerProps = {
