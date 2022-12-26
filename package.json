@@ -20,13 +20,16 @@
     "@trpc/server": "^10.0.0",
     "next": "13.0.2",
     "next-auth": "^4.18.3",
+    "prismjs": "^1.29.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-simple-code-editor": "^0.13.1",
     "superjson": "1.9.1",
     "zod": "^3.18.0"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
+    "@types/prismjs": "^1.26.0",
     "@types/react": "^18.0.14",
     "@types/react-dom": "^18.0.5",
     "@typescript-eslint/eslint-plugin": "^5.33.0",
