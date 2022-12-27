@@ -56,7 +56,7 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
           <Link href="/paste">
             <h1 className="text-3xl font-bold ml-2 mt-3 text-blue-50 pb-6 pt-2">Pastebin</h1>
           </Link>
-          <h2 className="text-1xl ml-2 mt-3 text-white pb-6 pt-2">{title}</h2>
+          <h2 className="text-1xl ml-2 mt-3 text-white pt-2">{title}</h2>
 
           <div>
             <div className="flex justify-end">
