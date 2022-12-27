@@ -6,6 +6,7 @@ import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import Link from "next/link";
+import { useState } from "react";
 
 export async function getServerSideProps(context : { query: { id: string } }) {
   const bin = await prisma.pastebin.findUnique({
@@ -30,6 +31,20 @@ type ServerProps = {
 };
 
 const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
+
+  const [copied, setCopied] = useState(false);
+
+  function copyToClipboard() {
+      navigator.clipboard.writeText(content)
+      .then(() => {
+          console.log("Copied to clipboard!");
+          setCopied(true);
+      })
+      .catch(err => {
+          alert('Failed to copy to clipboard: '+ err);
+      });
+  }
+
   return <>
     <Head>
       <title>Pastebin</title>
@@ -42,19 +57,28 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
             <h1 className="text-3xl font-bold ml-2 mt-3 text-blue-50 pb-6 pt-2">Pastebin</h1>
           </Link>
           <h2 className="text-1xl ml-2 mt-3 text-white pb-6 pt-2">{title}</h2>
-          <Editor
-            value={content}
-            placeholder={`function add(a, b) {\n  return a + b;\n}`}
-            readOnly={true}
-            highlight={code => Prism.highlight(code, Prism.languages[language], language)}
-            padding={14}
-            style={{
-              fontFamily: '"Fira code", "Fira Mono", monospace',
-              fontSize: 13,
-              paddingBottom: '1rem',
-            }}
-            className="bg-slate-800"
-          />
+
+          <div>
+            <div className="flex justify-end">
+              <span onClick={() => copyToClipboard()} className="flex gap-2 cursor-pointer relative top-8 mr-3 z-10">
+                  <svg xmlns="http://www.w3.org/2000/svg" width={16} className="fill-sky-100 opacity-20" viewBox="0 0 384 512"><path d="M336 64h-80c0-35.3-28.7-64-64-64s-64 28.7-64 64H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48zM192 40c13.3 0 24 10.7 24 24s-10.7 24-24 24-24-10.7-24-24 10.7-24 24-24zm144 418c0 3.3-2.7 6-6 6H54c-3.3 0-6-2.7-6-6V118c0-3.3 2.7-6 6-6h42v36c0 6.6 5.4 12 12 12h168c6.6 0 12-5.4 12-12v-36h42c3.3 0 6 2.7 6 6z"/></svg>
+                  {copied && <p className="text-gray-500">Copied!</p>}
+              </span>
+            </div>
+            <Editor
+              value={content}
+              placeholder={`function add(a, b) {\n  return a + b;\n}`}
+              readOnly={true}
+              highlight={code => Prism.highlight(code, Prism.languages[language], language)}
+              padding={14}
+              style={{
+                fontFamily: '"Fira code", "Fira Mono", monospace',
+                fontSize: 13,
+                paddingBottom: '1rem',
+              }}
+              className="bg-slate-800 mb-14"
+            />
+          </div>
         </div>
       </main>
   </>

@@ -61,7 +61,7 @@ const Pastebin: NextPage = () => {
               fontSize: 13,
               paddingBottom: '8rem',
             }}
-            className="bg-slate-800"
+            className="bg-slate-800 mb-14"
           />
           
           <div className="flex flex-row justify-between">
