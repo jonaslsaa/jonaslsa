@@ -65,7 +65,14 @@ const Pastebin: NextPage = () => {
           />
           
           <div className="flex flex-row justify-between">
-            <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" onChange={(e) => setLanguage(languages[e.target.value])}>
+            <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" onChange={(e) => {
+              const sel = e.target.value;
+              Object.values(languages).forEach((lang) => {
+                if(lang.name === sel) {
+                  setLanguage(lang);
+                }
+              })
+            }}>
               {Object.keys(languages).map((key) => {
                 return <option key={key} value={key}>{key}</option>
               })}

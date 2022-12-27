@@ -69,7 +69,8 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
               value={content}
               placeholder={`function add(a, b) {\n  return a + b;\n}`}
               readOnly={true}
-              highlight={code => Prism.highlight(code, Prism.languages[language], language)}
+              onValueChange={code => {return}}
+              highlight={code => Prism.highlight(code, Prism.languages[language] || Prism.languages.js!, language)}
               padding={14}
               style={{
                 fontFamily: '"Fira code", "Fira Mono", monospace',
