@@ -1,9 +1,13 @@
 import { type NextPage } from "next";
 import Head from "next/head";
+import { trpc } from "../../utils/trpc";
+import { useState } from "react";
+
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
-import { useState } from "react";
 import 'prismjs/themes/prism-tomorrow.css';
+import Link from "next/link";
+
 
 const Pastebin: NextPage = () => {
   const languages = {
@@ -18,10 +22,20 @@ const Pastebin: NextPage = () => {
 
   const [language, setLanguage] = useState(languages.javascript);
   const [code, setCode] = useState("");
+  const tCreateBin = trpc.paste.createPastebin.useMutation();
 
   function handleSubmit () {
     if(code.length === 0) return;
     if(code.length > 1024*1024) return alert("Content too long");
+    tCreateBin.mutate({title: "Untitled", content: code, language: language.name}, {
+      onSuccess: (slug) => {
+        console.log(slug);
+        window.location.href = `/paste/${slug}`;
+      },
+      onError: (err) => {
+        console.log(err);
+      }
+    });
   }
 
   return ( 
@@ -33,7 +47,9 @@ const Pastebin: NextPage = () => {
       </Head>
       <main className="bg-gray-900 min-h-screen w-full text-white flex justify-center">
         <div className="w-5/6 max-w-5xl rounded-md px-3">
-          <h1 className="text-3xl font-bold ml-2 mt-3 text-blue-50 pb-6 pt-2">Pastebin</h1>
+          <Link href="/paste">
+            <h1 className="text-3xl font-bold ml-2 mt-3 text-blue-50 pb-6 pt-2">Pastebin</h1>
+          </Link>
           <Editor
             value={code}
             placeholder={`function add(a, b) {\n  return a + b;\n}`}
@@ -49,7 +65,7 @@ const Pastebin: NextPage = () => {
           />
           
           <div className="flex flex-row justify-between">
-            <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" onChange={(e) => setLanguage(languages[e.target.value]!)}>
+            <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" onChange={(e) => setLanguage(languages[e.target.value])}>
               {Object.keys(languages).map((key) => {
                 return <option key={key} value={key}>{key}</option>
               })}

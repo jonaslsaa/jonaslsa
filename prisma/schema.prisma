@@ -74,3 +74,14 @@ model ShortenedLink {
   slug      String   @unique
   clicks    Int      @default(0)
 }
+
+model Pastebin {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  title     String
+  language  String
+  content   String   @db.MediumText
+  slug      String   @unique
+  clicks    Int      @default(0)
+}

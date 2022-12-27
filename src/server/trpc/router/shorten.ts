@@ -1,15 +1,7 @@
 import { z } from "zod";
 
 import { router, publicProcedure } from "../trpc";
-
-const generateSlug = (length : number) => {
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let result = "";
-    for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return result;
-};
+import { generateSlug } from "../../../utils/utils";
 
 export const shortenRouter = router({
   shortenLink: publicProcedure
