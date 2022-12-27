@@ -46,7 +46,7 @@ const Pastebin: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="bg-gray-900 min-h-screen w-full text-white flex justify-center">
-        <div className="w-5/6 max-w-5xl rounded-md px-3">
+        <div className="w-5/6 max-w-5xl rounded-md px-3 mb-14">
           <Link href="/paste">
             <h1 className="text-3xl font-bold ml-2 mt-3 text-blue-50 pb-6 pt-2">Pastebin</h1>
           </Link>
@@ -61,7 +61,7 @@ const Pastebin: NextPage = () => {
               fontSize: 13,
               paddingBottom: '8rem',
             }}
-            className="bg-slate-800 mb-14"
+            className="bg-slate-800"
           />
           
           <div className="flex flex-row justify-between">
