@@ -23,10 +23,11 @@ const Home: NextPage = () => {
             <ProjectLink link="https://www.linkedin.com/in/jonas-silva-b1a628ba/" title="Linkedin" />
 
             <hr className="border-gray-700 my-2" />
-            
-            <ProjectLink link="http://tracker.jonaslsa.com" title="Tracker" />
             <ProjectLink link="s/" title="URL Shortener" />
             <ProjectLink link="paste/" title="Pastebin" />
+
+            <hr className="border-gray-700 my-2" />
+            <ProjectLink link="http://tracker.jonaslsa.com" title="Tracker" />
             <ProjectLink link="https://www.multure.us/" title="Multure - AI managed CMS" />
          </div>
         </div>
