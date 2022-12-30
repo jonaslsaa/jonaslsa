@@ -22,12 +22,14 @@ const Pastebin: NextPage = () => {
 
   const [language, setLanguage] = useState(languages.plain);
   const [code, setCode] = useState("");
+  const [title, setTitle] = useState("");
   const tCreateBin = trpc.paste.createPastebin.useMutation();
 
   function handleSubmit () {
     if(code.length === 0) return;
     if(code.length > 1024*1024) return alert("Content too long");
-    tCreateBin.mutate({title: "Untitled", content: code, language: language.name}, {
+    const normTitle = title.length > 0 ? title : "Untitled";
+    tCreateBin.mutate({title: normTitle, content: code, language: language.name}, {
       onSuccess: (slug) => {
         console.log(slug);
         window.location.href = `/paste/${slug}`;
@@ -65,18 +67,21 @@ const Pastebin: NextPage = () => {
           />
           
           <div className="flex flex-row justify-between">
-            <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" defaultValue={language.name} onChange={(e) => {
-              const sel = e.target.value;
-              Object.values(languages).forEach((lang) => {
-                if(lang.name === sel) {
-                  setLanguage(lang);
-                }
-              })
-            }}>
-              {Object.keys(languages).map((key) => {
-                return <option key={key} value={key}>{key}</option>
-              })}
-            </select>
+            <div className="flex gap-2">
+              <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" defaultValue={language.name} onChange={(e) => {
+                const sel = e.target.value;
+                Object.values(languages).forEach((lang) => {
+                  if(lang.name === sel) {
+                    setLanguage(lang);
+                  }
+                })
+              }}>
+                {Object.keys(languages).map((key) => {
+                  return <option key={key} value={key}>{key}</option>
+                })}
+              </select>
+              <input type={"text"} className="bg-slate-800 text-white p-2 mt-2 rounded-sm" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
             <button className="bg-blue-600 text-white p-2 mt-2 rounded-sm px-6 hover:bg-blue-700" onClick={handleSubmit}>Submit</button>
           </div>
         </div>
