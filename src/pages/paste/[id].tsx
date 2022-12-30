@@ -52,7 +52,7 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
       <link rel="icon" href="/favicon.ico" />
     </Head>
     <main className="bg-gray-900 min-h-screen w-full text-white flex justify-center">
-        <div className="w-5/6 max-w-5xl rounded-md px-3">
+        <div className="w-5/6 max-w-5xl rounded-md px-3 mb-14">
           <Link href="/paste">
             <h1 className="text-3xl font-bold ml-2 mt-3 text-blue-50 pb-6 pt-2">Pastebin</h1>
           </Link>
@@ -77,8 +77,25 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
                 fontSize: 13,
                 paddingBottom: '1rem',
               }}
-              className="bg-slate-800 mb-14"
+              className="bg-slate-800"
             />
+            <div className="flex justify-end">
+              <a className="text-gray-600 text-xs mt-1 hover:underline" onClick={() => {
+                const element = document.createElement("a");
+                const file = new Blob([content], {type: 'text/plain'});
+                element.href = URL.createObjectURL(file);
+                element.download = `${title}`;
+                if (element.download === "") {
+                  element.download = "untitled.txt";
+                }
+                if (element.download.indexOf(".") === -1) {
+                  element.download += ".txt";
+                }
+                document.body.appendChild(element); // Required for this to work in FireFox
+                element.click();
+                document.body.removeChild(element);
+              }}>Download</a>
+            </div>
           </div>
         </div>
       </main>
