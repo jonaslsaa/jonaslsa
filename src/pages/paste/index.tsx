@@ -11,8 +11,8 @@ import Link from "next/link";
 
 const Pastebin: NextPage = () => {
   const languages = {
-    javascript: {grammar: Prism.languages.js!, name: "javascript"},
     plain: {grammar: Prism.languages.plain!, name: "plain"},
+    javascript: {grammar: Prism.languages.js!, name: "javascript"},
     html: {grammar: Prism.languages.html!, name: "html"},
     markup: {grammar: Prism.languages.markup!, name: "markup"},
     xml: {grammar: Prism.languages.xml!, name: "xml"},
@@ -20,7 +20,7 @@ const Pastebin: NextPage = () => {
     clike: {grammar: Prism.languages.clike!, name: "clike"},
   }
 
-  const [language, setLanguage] = useState(languages.javascript);
+  const [language, setLanguage] = useState(languages.plain);
   const [code, setCode] = useState("");
   const tCreateBin = trpc.paste.createPastebin.useMutation();
 
@@ -65,7 +65,7 @@ const Pastebin: NextPage = () => {
           />
           
           <div className="flex flex-row justify-between">
-            <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" onChange={(e) => {
+            <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" defaultValue={language.name} onChange={(e) => {
               const sel = e.target.value;
               Object.values(languages).forEach((lang) => {
                 if(lang.name === sel) {
@@ -77,7 +77,7 @@ const Pastebin: NextPage = () => {
                 return <option key={key} value={key}>{key}</option>
               })}
             </select>
-            <button className="bg-blue-600 text-white p-2 mt-2 rounded-sm px-6" onClick={handleSubmit}>Submit</button>
+            <button className="bg-blue-600 text-white p-2 mt-2 rounded-sm px-6 hover:bg-blue-700" onClick={handleSubmit}>Submit</button>
           </div>
         </div>
       </main>
