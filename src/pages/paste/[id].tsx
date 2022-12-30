@@ -80,7 +80,7 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
               className="bg-slate-800"
             />
             <div className="flex justify-end">
-              <a className="text-gray-600 text-xs mt-1 hover:underline" onClick={() => {
+              <a className="text-gray-600 text-xs mt-1 hover:underline cursor-pointer" onClick={() => {
                 const element = document.createElement("a");
                 const file = new Blob([content], {type: 'text/plain'});
                 element.href = URL.createObjectURL(file);
