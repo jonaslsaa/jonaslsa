@@ -68,7 +68,7 @@ const Pastebin: NextPage = () => {
           
           <div className="flex flex-row justify-between">
             <div className="flex gap-2">
-              <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm" defaultValue={language.name} onChange={(e) => {
+              <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm w-32 sm:w-52" defaultValue={language.name} onChange={(e) => {
                 const sel = e.target.value;
                 Object.values(languages).forEach((lang) => {
                   if(lang.name === sel) {
@@ -80,9 +80,9 @@ const Pastebin: NextPage = () => {
                   return <option key={key} value={key}>{key}</option>
                 })}
               </select>
-              <input type={"text"} className="bg-slate-800 text-white p-2 mt-2 rounded-sm" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <input type={"text"} className="bg-slate-800 text-white p-2 mt-2 rounded-sm w-32 sm:w-52" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
-            <button className="bg-blue-600 text-white p-2 mt-2 rounded-sm px-6 hover:bg-blue-700" onClick={handleSubmit}>Submit</button>
+            <button className="bg-blue-600 text-white p-2 ml-2 mt-2 rounded-sm px-6 hover:bg-blue-700" onClick={handleSubmit}>Submit</button>
           </div>
         </div>
       </main>
