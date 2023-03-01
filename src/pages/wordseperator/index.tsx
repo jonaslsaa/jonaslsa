@@ -1,11 +1,11 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react'
+import pako from 'pako';
 
 const minFrequency = 40;
-const wordFrequencyDataEndpoint = 'https://f003.backblazeb2.com/b2api/v1/b2_download_file_by_id?fileId=4_z4bab91d8065ab46a8a540d11_f114a44397a6b672a_d20230228_m165513_c003_v0312016_t0013_u01677603313857';
-//const wordFrequencyDataEndpoint = '/norsk.freq';
+const wordFrequencyDataEndpoint = 'https://f003.backblazeb2.com/b2api/v1/b2_download_file_by_id?fileId=4_z4bab91d8065ab46a8a540d11_f113003e5a8b6a130_d20230301_m201959_c003_v0312007_t0018_u01677701999854';
 let isFetching = false;
 
 function bestFromMap(map: Map<string, number>) {
@@ -110,8 +110,13 @@ const WordSeperator: NextPage = () => {
     isFetching = true;
     console.log('Fetching word frequency data...');
     setInternalMessage('Fetching word frequency data...');
-    fetch(wordFrequencyDataEndpoint, { cache: 'force-cache' })
-      .then(response => response.text())
+    fetch(wordFrequencyDataEndpoint, { cache: 'force-cache' }) // this file is brotli compressed with zlib (use pako to decompress):
+      .then(response => response.arrayBuffer())
+      .then(buffer => {
+        setInternalMessage('Decompressing word frequency data...');
+        const decompressed = pako.inflate(buffer);
+        return new TextDecoder("utf-8").decode(decompressed);
+      })
       .then(data => {
         const newWordFrequencyData = new Map<string, number>();
         setInternalMessage('Parsing word frequency data...');
