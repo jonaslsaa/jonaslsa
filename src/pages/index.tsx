@@ -28,7 +28,7 @@ const Home: NextPage = () => {
 
             <hr className="border-gray-700 my-2" />
             <ProjectLink link="http://tracker.jonaslsa.com" title="Tracker" />
-            <ProjectLink link="https://www.multure.us/" title="Multure - AI managed CMS" />
+            {/*<ProjectLink link="https://www.multure.us/" title="Multure - AI managed CMS" />*/}
          </div>
         </div>
       </main>
