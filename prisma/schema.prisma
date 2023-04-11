@@ -86,7 +86,7 @@ model Incident {
   updatedAt         DateTime @updatedAt
 
   fromTwitterHandle String
-  tweetId           String
+  tweetId           String   @unique
   content           String   @db.MediumText
 
   lat               Float

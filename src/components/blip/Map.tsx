@@ -2,7 +2,7 @@ import React from 'react'
 import type { FC } from 'react'
 import "leaflet/dist/leaflet.css";
 
-import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet';
 
 type MapProps = {
@@ -10,7 +10,8 @@ type MapProps = {
 }
 
 export type MarkerData = {
-  id: number
+  id: string
+  tweetUrl: string
   lat: number
   lng: number
   location: string
@@ -48,6 +49,9 @@ const Map: FC<MapProps> = ({ markerData }) => {
               <br />
               <b>Summary:</b> {marker.summary}
               <br />
+              <a href={marker.tweetUrl} style={{opacity: '50%', fontSize: '0.7rem', marginRight: '.1rem'}}>
+                Source
+              </a>
             </Popup>
           </Marker>
         ))}

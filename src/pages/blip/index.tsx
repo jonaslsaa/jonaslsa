@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic'
 import Head from "next/head";
 import { useRef, useState } from "react";
 import React from "react";
-import { MarkerData } from "../../components/blip/Map";
+import type { MarkerData } from "../../components/blip/Map";
 
 import { prisma } from "../../server/db/client";
 
@@ -21,6 +21,7 @@ export async function getServerSideProps() {
   const markerData: MarkerData[] = incidents.map(incident => {
     return {
       id: incident.id,
+      tweetUrl: 'https://twitter.com/' + incident.fromTwitterHandle + '/status/' + incident.tweetId,
       lat: incident.lat,
       lng: incident.lng,
       location: incident.location,
@@ -36,27 +37,6 @@ export async function getServerSideProps() {
     }
   }
 }
-
-const dummyData: MarkerData[] = [
-  {
-    id: 1,
-    lat: 59.94015,
-    lng: 10.72185,
-    location: 'Blindern, UiO',
-    time: '12:00',
-    type: 'Public disturbance',
-    summary: 'A man was reported throwing objects and hitting house walls with a golf club. The police have detained the man.'
-  },
-  {
-    id: 2,
-    lat: 59.95015,
-    lng: 10.62185,
-    location: 'Some other place',
-    time: '13:00',
-    type: 'Car crash',
-    summary: 'A car crashed into a tree. The driver was not injured.'
-  }
-]
 
 const Home: NextPage<{ markerData: MarkerData[] }> = ({ markerData }) => {
 
