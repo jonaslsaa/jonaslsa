@@ -8,6 +8,8 @@ import { Configuration, OpenAIApi } from "openai";
 
 const openai = new OpenAIApi(new Configuration({ apiKey: env.OPENAI_API_KEY }));
 
+const AUTH_TOKEN = "perlerdarlig"; // temporary
+
 const usersToScrape = [
   'politietsorost',
   'oslopolitiops',
@@ -223,6 +225,14 @@ const localizeTweets = async (tweets: CategorizedTweet[]) => {
 
 
 const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
+  if (req.method !== 'GET') {
+    res.status(400).json({ error: 'Bad request' });
+    return;
+  }
+  if (req.query.token !== AUTH_TOKEN) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
   const startTimer = Date.now();
   const usernameMap = await fetchHandleIdMap();
   const tweets = await getTodaysTweets(usernameMap);
