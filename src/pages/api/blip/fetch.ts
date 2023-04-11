@@ -4,11 +4,15 @@ import { prisma } from "../../../server/db/client";
 
 import { Rettiwt, TweetFilter } from "rettiwt-api"
 import { env } from "../../../env/server.mjs";
-const { Configuration, OpenAIApi } = require("openai");
+import { Configuration, OpenAIApi } from "openai";
 
 const openai = new OpenAIApi(new Configuration({ apiKey: env.OPENAI_API_KEY }));
 
 const usersToScrape = ['politietsorost', 'oslopolitiops']
+const userToLocationBias = new Map([
+  ['politietsorost', 'point:59.2736681, 10.403059034'],
+  ['oslopolitiops', 'point:59.9138688,10.7522454']
+]);
 
 const startOfToday = new Date();
 startOfToday.setHours(0, 0, 0, 0);
@@ -26,6 +30,11 @@ type CategorizedTweet = Tweet & {
   type: string;
   time: string;
   summary: string;
+};
+
+type LocatedTweet = CategorizedTweet & {
+  lat: number;
+  lng: number;
 };
 
 
@@ -83,7 +92,7 @@ const filterToNewTweets = async (tweets: Tweet[]) => {
   return tweets.filter(tweet => !existingTweetIds.has(tweet.id));
 }
 
-function callCompletionModel(tweetText: string) {
+async function callCompletionModel(tweetText: string) {
   const prompt = `Tweet from Norwegiean police (norsk):
 ${tweetText}
 Give direct answers, on each line, answer N/A if not applicable. Primary location or secondary (road) may be in hashtag (no #).
@@ -94,14 +103,17 @@ Location: PRIMARY, SECONDARY
 When: TIME (answer N/A if not specified)
 Type: SHORT INCIDENT TYPE
 Summary: SHORT SUMMARY`
-  const completion = openai.createChatCompletion({
+  const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
-    prompt: prompt,
-    maxTokens: 256,
+    max_tokens: 512,
     temperature: 0.5,
+    messages: [
+      { role: "system", content: "You are a helpful assistant." },
+      { role: "user", content: prompt },
+    ],
   });
   console.log(completion);
-  return completion.data.choices[0].text;
+  return completion.data.choices[0]?.message?.content;
 }
 
 
@@ -117,10 +129,10 @@ function parseCompletion(completion: string) {
   return {location, time, type, summary};
 }
 
-const catogorizeTweets = (tweets: Tweet[]) => {
+const catogorizeTweets = async (tweets: Tweet[]) => {
   const categorizedTweets: CategorizedTweet[] = [];
   for (const tweet of tweets) {
-    const completion = callCompletionModel(tweet.text);
+    const completion = await callCompletionModel(tweet.text);
     const parsedCompletion = parseCompletion(completion);
     if (parsedCompletion) {
       categorizedTweets.push({
@@ -131,6 +143,23 @@ const catogorizeTweets = (tweets: Tweet[]) => {
   }
   return categorizedTweets;
 }
+
+const findCoordinatesFromText = async (tweetHandle: string, text: string) => {
+  const locationBias = userToLocationBias.get(tweetHandle) ?? '';
+  const PlaceFromTextEndpoint = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json?inputtype=textquery&fields=geometry&language=no&locationbias=" + locationBias;
+  const PlaceFromTextKey = env.GOOGLE_PLACES_API_KEY;
+  const PlaceFromTextUrl = `${PlaceFromTextEndpoint}&key=${PlaceFromTextKey}&input=${text}`;
+  const response = await fetch(PlaceFromTextUrl);
+  const data = await response.json();
+  if (data.status === "OK") {
+    const location = data.candidates[0].geometry.location;
+    return {lat: location.lat, lng: location.lng};
+  } else {
+    console.log("error getting place", data);
+  }
+  return null;
+}
+
 
 const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
   //const usernameMap = await fetchHandleIdMap();
@@ -145,9 +174,10 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
       replyTo: null
     },
   ];
-  const categorizedTweets = catogorizeTweets(dummyTweets);
+  const categorizedTweets = await catogorizeTweets(dummyTweets);
+  const dummyCoordinates = await findCoordinatesFromText('politietsorost', dummyLocation);
   
-  res.status(200).json(categorizedTweets);
+  res.status(200).json(dummyCoordinates);
 };
 
 export default GetNewTweets;
