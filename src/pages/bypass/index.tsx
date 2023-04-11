@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { trpc } from "../../utils/trpc";
 
 
-const Home: NextPage = () => {
+const BypassPage: NextPage = () => {
   const bypassLinkRef = useRef<HTMLInputElement>(null);
   const resultLinkRef = useRef<HTMLAnchorElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -85,4 +85,4 @@ const Home: NextPage = () => {
   );
 };
 
-export default Home;
+export default BypassPage;
