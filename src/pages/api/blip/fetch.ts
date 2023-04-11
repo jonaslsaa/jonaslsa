@@ -15,11 +15,23 @@ const usersToScrape = [
   'politietsorost',
   'oslopolitiops',
   'politietost',
+  'politietsorvest',
+  'politiagder',
+  'politiinnlandet',
+  'politinordland',
+  'politifinnmark',
+  'PolitiTrondelag'
 ]
 const userToLocationBias = new Map([
   ['politietsorost',  'point:59.2736681, 10.40305903'],
   ['oslopolitiops',   'point:59.9138688, 10.75224541'],
-  ['politietost',     'point:59.7155459, 10.83161895']
+  ['politietost',     'point:59.7155459, 10.83161895'],
+  ['politietsorvest', 'point:58.9636489, 5.735737659'],
+  ['politiagder',     'point:58.1471410, 7.998652932'],
+  ['politiinnlandet', 'point:60.7960557, 11.09422286'],
+  ['politinordland',  'point:67.2886571, 14.39942244'],
+  ['politifinnmark',  'point:69.7306470, 30.02526065'],
+  ['PolitiTrondelag', 'point:63.4397447, 10.39951882']
 ]);
 
 const startOfToday = new Date();
