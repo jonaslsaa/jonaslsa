@@ -95,5 +95,6 @@ model Incident {
   location          String
   time              DateTime @default(now())
   type              String
+  severity          String?
   summary           String
 }

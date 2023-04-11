@@ -8,7 +8,11 @@ import { Configuration, OpenAIApi } from "openai";
 
 const openai = new OpenAIApi(new Configuration({ apiKey: env.OPENAI_API_KEY }));
 
-const usersToScrape = ['politietsorost', 'oslopolitiops']
+const usersToScrape = [
+  'politietsorost',
+  'oslopolitiops',
+  //'politietoslo',
+]
 const userToLocationBias = new Map([
   ['politietsorost', 'point:59.2736681, 10.403059034'],
   ['oslopolitiops', 'point:59.9138688,10.7522454']
@@ -21,7 +25,7 @@ type Tweet = {
   id: string;
   createdAt: Date;
   tweetHandle: string;
-  text: string;
+  content: string;
   replyTo: string | null;
 };
 
@@ -29,6 +33,7 @@ type CategorizedTweet = Tweet & {
   location: string;
   type: string;
   time: string;
+  severity: 'LOW' | 'MED' | 'HIGH';
   summary: string;
 };
 
@@ -56,7 +61,7 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
         id: tweet.id,
         createdAt: new Date(tweet.createdAt),
         tweetHandle: usernameMap.get(tweet.tweetBy) ?? 'unknown',
-        text: tweet.fullText,
+        content: tweet.fullText,
         replyTo: tweet.replyTo
       }
     }));
@@ -81,59 +86,100 @@ const fetchHandleIdMap = async () => {
 };
 
 const filterToNewTweets = async (tweets: Tweet[]) => {
-  const existingTweets = await prisma.incident.findMany({
+  const existingIncidents = await prisma.incident.findMany({
     where: {
       tweetId: {
         in: tweets.map(tweet => tweet.id)
       }
+    },
+    select: {
+      tweetId: true
     }
   });
-  const existingTweetIds = new Set(existingTweets.map(tweet => tweet.id));
-  return tweets.filter(tweet => !existingTweetIds.has(tweet.id));
+  const existingTweetsIds = existingIncidents.map(incident => incident.tweetId);
+  const news = tweets.filter(tweet => !existingTweetsIds.includes(tweet.id));
+  return news;
 }
+
+const mergeReplyToTweets = async (tweets: Tweet[]) => {
+  const parentTweets = tweets.filter(tweet => !tweet.replyTo);
+  const tweetsMap = new Map(parentTweets.map(tweet => [tweet.id, tweet]));
+  for (const tweet of tweets) {
+    if (tweet.replyTo) {
+      const parentTweet = tweetsMap.get(tweet.replyTo);
+      if (parentTweet) {
+        parentTweet.content += `
+${tweet.content}`;
+      }
+    }
+  }
+  return parentTweets;
+}
+
 
 async function callCompletionModel(tweetText: string) {
   const prompt = `Tweet from Norwegiean police (norsk):
 ${tweetText}
 Give direct answers, on each line, answer N/A if not applicable. Primary location or secondary (road) may be in hashtag (no #).
 
-Please give me the location, incident type (or crime) and short summary.
-Format:
+Please give me the location, incident type (or crime), severity and one sentance summary in english.
+Format (only english):
 Location: PRIMARY, SECONDARY
 When: TIME (answer N/A if not specified)
 Type: SHORT INCIDENT TYPE
+Severity: LOW / MED / HIGH (must be one of these, crimes should be MED or HIGH)
 Summary: SHORT SUMMARY`
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
     max_tokens: 512,
-    temperature: 0.5,
+    temperature: 0.6,
     messages: [
       { role: "system", content: "You are a helpful assistant." },
       { role: "user", content: prompt },
     ],
   });
-  console.log(completion);
-  return completion.data.choices[0]?.message?.content;
+  if (!completion.data || !completion.data.choices || !completion.data.usage) {
+    return null;
+  }
+  const tokens = completion.data.usage.total_tokens;
+  const message = completion.data.choices[0]?.message?.content;
+  return {tokens, message};
 }
 
 
-function parseCompletion(completion: string) {
+function parseCompletion(tweetCreated: Date, completion: string) {
   const lines = completion.split('\n');
   if (lines.length < 4) {
     return null;
   }
   const location = lines[0].split(':')[1].trim();
-  const time = lines[1].split(':')[1].trim();
-  const type = lines[2].split(':')[1].trim();
-  const summary = lines[3].split(':')[1].trim();
-  return {location, time, type, summary};
+  let time = lines[1].split(':')[1].trim();
+  try {
+    if (time === 'N/A') throw new Error('N/A');
+    time = new Date(time).toISOString();
+  } catch (e) {
+    time = tweetCreated.toISOString();
+  }
+  const type = lines[2].split(':')[1].trim()
+  let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH';
+  if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH') {
+    severity = 'LOW'; // Default
+  }
+  const summary = lines[4].split(':')[1].trim();
+  if (type === 'N/A' || summary === 'N/A') {
+    return null;
+  }
+  return {location, time, type, severity, summary};
 }
 
 const catogorizeTweets = async (tweets: Tweet[]) => {
   const categorizedTweets: CategorizedTweet[] = [];
+  let total_tokens = 0;
   for (const tweet of tweets) {
-    const completion = await callCompletionModel(tweet.text);
-    const parsedCompletion = parseCompletion(completion);
+    const completion = await callCompletionModel(tweet.content);
+    if (!completion?.message) continue;
+    total_tokens += completion.tokens;
+    const parsedCompletion = parseCompletion(tweet.createdAt, completion.message);
     if (parsedCompletion) {
       categorizedTweets.push({
         ...tweet,
@@ -141,7 +187,7 @@ const catogorizeTweets = async (tweets: Tweet[]) => {
       });
     }
   }
-  return categorizedTweets;
+  return {categorizedTweets, tokens: total_tokens};
 }
 
 const findCoordinatesFromText = async (tweetHandle: string, text: string) => {
@@ -160,24 +206,53 @@ const findCoordinatesFromText = async (tweetHandle: string, text: string) => {
   return null;
 }
 
+const localizeTweets = async (tweets: CategorizedTweet[]) => {
+  const localizedTweets: LocatedTweet[] = [];
+  for (const tweet of tweets) {
+    const coordinates = await findCoordinatesFromText(tweet.tweetHandle, tweet.location);
+    if (coordinates?.lat && coordinates?.lng) {
+      localizedTweets.push({
+        ...tweet,
+        lat: coordinates.lat,
+        lng: coordinates.lng
+      });
+    }
+  }
+  return localizedTweets;
+}
+
 
 const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
-  //const usernameMap = await fetchHandleIdMap();
-  //const tweets = await getTodaysTweets(usernameMap);
-  //const newTweets = await filterToNewTweets(tweets);
-  const dummyTweets = [
-    {
-      id: '123',
-      createdAt: new Date(),
-      tweetHandle: 'politietsorost',
-      text: 'Hei, dette er en dummy tweet',
-      replyTo: null
-    },
-  ];
-  const categorizedTweets = await catogorizeTweets(dummyTweets);
-  const dummyCoordinates = await findCoordinatesFromText('politietsorost', dummyLocation);
+  const startTimer = Date.now();
+  const usernameMap = await fetchHandleIdMap();
+  const tweets = await getTodaysTweets(usernameMap);
+  const newTweets = await filterToNewTweets(tweets);
+  const mergedTweets = await mergeReplyToTweets(newTweets);
+  const { categorizedTweets, tokens } = await catogorizeTweets(mergedTweets);
+  const localizedTweets = await localizeTweets(categorizedTweets);
+
+  // Save to database
+  const saved = await prisma.incident.createMany({
+    data: localizedTweets.map(tweet => ({
+      fromTwitterHandle: tweet.tweetHandle,
+      tweetId: tweet.id,
+      content: tweet.content,
+      lat: tweet.lat,
+      lng: tweet.lng,
+      location: tweet.location,
+      time: tweet.time,
+      type: tweet.type,
+      severity: tweet.severity,
+      summary: tweet.summary
+    })),
+    skipDuplicates: true
+  });
+
+  console.log(`Saved ${saved.count} new tweets`);
+
+  const tookTime = Date.now() - startTimer;
   
-  res.status(200).json(dummyCoordinates);
+  res.status(200).json({ tweets: localizedTweets, saved: saved.count, tookTime, tokens });
 };
 
 export default GetNewTweets;
