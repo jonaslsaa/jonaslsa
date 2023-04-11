@@ -13,11 +13,12 @@ const AUTH_TOKEN = "perlerdarlig"; // temporary
 const usersToScrape = [
   'politietsorost',
   'oslopolitiops',
-  //'politietoslo',
+  'politietost',
 ]
 const userToLocationBias = new Map([
-  ['politietsorost', 'point:59.2736681, 10.403059034'],
-  ['oslopolitiops', 'point:59.9138688,10.7522454']
+  ['politietsorost',  'point:59.2736681, 10.40305903'],
+  ['oslopolitiops',   'point:59.9138688, 10.75224541'],
+  ['politietost',     'point:59.7155459, 10.83161895']
 ]);
 
 const startOfToday = new Date();
