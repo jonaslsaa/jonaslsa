@@ -96,5 +96,5 @@ model Incident {
   time              DateTime @default(now())
   type              String
   severity          String?
-  summary           String
+  summary           String   @db.MediumText
 }
