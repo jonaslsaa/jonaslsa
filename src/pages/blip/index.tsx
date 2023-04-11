@@ -22,6 +22,7 @@ export async function getServerSideProps() {
     return {
       id: incident.id,
       tweetUrl: 'https://twitter.com/' + incident.fromTwitterHandle + '/status/' + incident.tweetId,
+      tweetHandle: incident.fromTwitterHandle,
       lat: incident.lat,
       lng: incident.lng,
       location: incident.location,

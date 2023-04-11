@@ -12,6 +12,7 @@ type MapProps = {
 export type MarkerData = {
   id: string
   tweetUrl: string
+  tweetHandle: string
   lat: number
   lng: number
   location: string
@@ -52,7 +53,7 @@ const Map: FC<MapProps> = ({ markerData }) => {
               <b>Summary:</b> {marker.summary}
               <br />
               <a href={marker.tweetUrl} style={{opacity: '50%', fontSize: '0.7rem', marginRight: '.1rem'}}>
-                Source
+                @{marker.tweetHandle}
               </a>
             </Popup>
           </Marker>
