@@ -171,12 +171,13 @@ function parseCompletion(tweetCreated: Date, completion: string) {
   }
   const location = lines[0].split(':')[1].trim();
   let time = lines[1].split(':')[1].trim();
-  try {
+  /*try {
     if (time === 'N/A') throw new Error('N/A');
     time = new Date(time).toISOString();
   } catch (e) {
     time = tweetCreated.toISOString();
-  }
+  }*/
+  time = tweetCreated.toISOString();
   const type = lines[2].split(':')[1].trim()
   let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH';
   if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH') {
