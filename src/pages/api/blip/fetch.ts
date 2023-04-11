@@ -2,6 +2,7 @@ import { type NextApiRequest, type NextApiResponse } from "next";
 
 import { prisma } from "../../../server/db/client";
 
+import type { Tweet} from "rettiwt-api";
 import { Rettiwt, TweetFilter } from "rettiwt-api"
 import { env } from "../../../env/server.mjs";
 import { Configuration, OpenAIApi } from "openai";
@@ -24,7 +25,7 @@ const userToLocationBias = new Map([
 const startOfToday = new Date();
 startOfToday.setHours(0, 0, 0, 0);
 
-type Tweet = {
+type MyTweet = {
   id: string;
   createdAt: Date;
   tweetHandle: string;
@@ -32,7 +33,7 @@ type Tweet = {
   replyTo: string | null;
 };
 
-type CategorizedTweet = Tweet & {
+type CategorizedTweet = MyTweet & {
   location: string;
   type: string;
   time: string;
@@ -50,11 +51,11 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   const rettiwt = Rettiwt();
   const tweetService = rettiwt.tweets;
   const tweetFilter = new TweetFilter({fromUsers: usersToScrape, startDate: startOfToday.toISOString()});
-  const tweets: Tweet[] = [];
+  const tweets: MyTweet[] = [];
   let nextCursor = undefined;
   let i = 0;
   do {
-    const tweetBatch = await tweetService.getTweets(tweetFilter, 18, nextCursor);
+    const tweetBatch: {next: {value: string}, list: Tweet[]} = await tweetService.getTweets(tweetFilter, 18, nextCursor);
     let hasSomeFromYesterday = false;
     tweets.push(...tweetBatch.list.map(function (tweet) {
       if (new Date(tweet.createdAt).getDate() < startOfToday.getDate()) {
@@ -88,7 +89,7 @@ const fetchHandleIdMap = async () => {
   return handleIdMap;
 };
 
-const filterToNewTweets = async (tweets: Tweet[]) => {
+const filterToNewTweets = async (tweets: MyTweet[]) => {
   const existingIncidents = await prisma.incident.findMany({
     where: {
       tweetId: {
@@ -104,7 +105,7 @@ const filterToNewTweets = async (tweets: Tweet[]) => {
   return news;
 }
 
-const mergeReplyToTweets = async (tweets: Tweet[]) => {
+const mergeReplyToTweets = async (tweets: MyTweet[]) => {
   const parentTweets = tweets.filter(tweet => !tweet.replyTo);
   const tweetsMap = new Map(parentTweets.map(tweet => [tweet.id, tweet]));
   for (const tweet of tweets) {
@@ -175,7 +176,7 @@ function parseCompletion(tweetCreated: Date, completion: string) {
   return {location, time, type, severity, summary};
 }
 
-const catogorizeTweets = async (tweets: Tweet[]) => {
+const catogorizeTweets = async (tweets: MyTweet[]) => {
   const categorizedTweets: CategorizedTweet[] = [];
   let total_tokens = 0;
   for (const tweet of tweets) {
