@@ -28,6 +28,7 @@ const Home: NextPage = () => {
 
             <hr className="border-gray-700 my-2" />
             <ProjectLink link="http://tracker.jonaslsa.com" title="Tracker" />
+            <ProjectLink link="http://jonaslsa.com/blip" title="Blip - Real-time incident mapping" />
             {/*<ProjectLink link="https://www.multure.us/" title="Multure - AI managed CMS" />*/}
          </div>
         </div>
