@@ -27,6 +27,7 @@ export async function getServerSideProps() {
       location: incident.location,
       time: incident.time.toISOString(),
       type: incident.type,
+      severity: incident.severity,
       summary: incident.summary
     }
   })

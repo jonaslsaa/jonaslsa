@@ -16,12 +16,14 @@ export type MarkerData = {
   lng: number
   location: string
   time: Date | string
-  type: string 
+  type: string
+  severity: ("LOW" | "MED" | "HIGH") | null
   summary: string
 }
 
-const markerIcon = new L.Icon({ iconUrl: '/marker-icon.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] }) 
-
+const markerIconHigh = new L.Icon({ iconUrl: '/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] }) 
+const markerIconMedium = new L.Icon({ iconUrl: '/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconLow = new L.Icon({ iconUrl: '/marker-blue.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
 
 const dateToStringTime = (date: Date) => {
   if (date.toLocaleDateString() !== new Date().toLocaleDateString()) { // if date is not today, also show date
@@ -38,7 +40,7 @@ const Map: FC<MapProps> = ({ markerData }) => {
           url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
         />
         {markerData.map((marker) => (
-          <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerIcon}>
+          <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={marker.severity === 'HIGH' ? markerIconHigh : marker.severity === 'MED' ? markerIconMedium : markerIconLow}>
             <Popup>
               <span style={{float: 'right', opacity: '65%', fontSize: '0.7rem', marginRight: '.1rem'}}>
                 {dateToStringTime(typeof marker.time === 'string' ? new Date(marker.time) : marker.time)}
