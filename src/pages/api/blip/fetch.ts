@@ -34,8 +34,8 @@ const userToLocationBias = new Map([
   ['PolitiTrondelag', 'point:63.4397447, 10.39951882']
 ]);
 
-const startOfToday = new Date();
-startOfToday.setHours(0, 0, 0, 0);
+const startOfSearch = new Date();
+startOfSearch.setDate(startOfSearch.getDate() - 1);
 
 type MyTweet = {
   id: string;
@@ -62,16 +62,17 @@ type LocatedTweet = CategorizedTweet & {
 const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   const rettiwt = Rettiwt();
   const tweetService = rettiwt.tweets;
-  const tweetFilter = new TweetFilter({fromUsers: usersToScrape, startDate: startOfToday.toISOString()});
+  const tweetFilter = new TweetFilter({fromUsers: usersToScrape, startDate: startOfSearch.toISOString()});
   const tweets: MyTweet[] = [];
   let nextCursor = undefined;
   let i = 0;
   do {
     const tweetBatch: {next: {value: string}, list: Tweet[]} = await tweetService.getTweets(tweetFilter, 18, nextCursor);
-    let hasSomeFromYesterday = false;
+    let shouldStop = false;
     tweets.push(...tweetBatch.list.map(function (tweet) {
-      if (new Date(tweet.createdAt).getDate() < startOfToday.getDate()) {
-        hasSomeFromYesterday = true;
+      // If we have a tweet from more than 24 hours ago, we can stop fetching
+      if (new Date(tweet.createdAt).getTime() < startOfSearch.getTime()) {
+        shouldStop = true;
       }
       return {
         id: tweet.id,
@@ -83,7 +84,7 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
     }));
     nextCursor = tweetBatch.next.value;
     i++;
-    if (hasSomeFromYesterday) {
+    if (shouldStop) {
       break;
     }
   } while (nextCursor && i < 6); // Max amount of pages to fetch
@@ -249,6 +250,7 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
   }
   const startTimer = Date.now();
   const usernameMap = await fetchHandleIdMap();
+
   const tweets = await getTodaysTweets(usernameMap);
   const newTweets = await filterToNewTweets(tweets);
   const mergedTweets = await mergeReplyToTweets(newTweets);
