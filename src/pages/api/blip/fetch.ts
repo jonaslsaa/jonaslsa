@@ -35,7 +35,7 @@ const userToLocationBias = new Map([
 ]);
 
 const startOfSearch = new Date();
-startOfSearch.setDate(startOfSearch.getDate() - 1);
+startOfSearch.setDate(startOfSearch.getDate() - 3);
 
 type MyTweet = {
   id: string;
@@ -58,11 +58,12 @@ type LocatedTweet = CategorizedTweet & {
   lng: number;
 };
 
-
+const MAX_PAGES = 16;
 const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   const rettiwt = Rettiwt();
   const tweetService = rettiwt.tweets;
   const tweetFilter = new TweetFilter({fromUsers: usersToScrape, startDate: startOfSearch.toISOString()});
+  console.log('Fetching tweets from ' + startOfSearch.toISOString());
   const tweets: MyTweet[] = [];
   let nextCursor = undefined;
   let i = 0;
@@ -72,6 +73,7 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
     tweets.push(...tweetBatch.list.map(function (tweet) {
       // If we have a tweet from more than 24 hours ago, we can stop fetching
       if (new Date(tweet.createdAt).getTime() < startOfSearch.getTime()) {
+        console.log('Tweet outside of search window: ' + tweet.createdAt, " - stopping");
         shouldStop = true;
       }
       return {
@@ -87,7 +89,8 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
     if (shouldStop) {
       break;
     }
-  } while (nextCursor && i < 6); // Max amount of pages to fetch
+  } while (nextCursor && i < MAX_PAGES); // Max amount of pages to fetch
+  console.log("Pages fetched: " + i);
   return tweets;
 };
 
@@ -194,13 +197,13 @@ function parseCompletion(tweet: MyTweet, completion: string) {
   }*/
   time = tweet.createdAt.toISOString();
   const type = lines[2].split(':')[1].trim()
-  let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | null;
-  if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH') {
+  let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | 'N/A' | null;
+  if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH' && severity !== 'N/A') {
     console.log('Invalid severity - Setting to LOW:', severity);
     severity = 'LOW'; // Default
   }
   const summary = lines[4].split(':')[1].trim();
-  if (type === 'N/A' || summary === 'N/A' || location === 'N/A') {
+  if (type === 'N/A' || summary === 'N/A' || location === 'N/A' || severity === 'N/A') {
     console.log('Marking tweet as invalid:', tweet.id);
     severity = null; // Mark as invalid
   }
@@ -297,7 +300,7 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
   const usernameMap = await fetchHandleIdMap();
 
   const tweets = await getTodaysTweets(usernameMap);
-  console.log(`Got ${tweets.length} tweets`);
+  console.log(`Got ${tweets.length} tweets, took ${Date.now() - startTimer}ms`);
   const newTweets = await filterToNewTweets(tweets);
   console.log(`Got ${newTweets.length} new tweets`);
   const mergedTweets = await mergeReplyToTweets(newTweets);
