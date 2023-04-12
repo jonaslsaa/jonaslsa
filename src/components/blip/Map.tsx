@@ -74,7 +74,7 @@ const Map: FC<MapProps> = ({ markerData, findMe }) => {
               <br />
               <b>Summary:</b> {marker.summary}
               <br />
-              <a href={marker.tweetUrl} style={{opacity: '50%', fontSize: '0.7rem', marginRight: '.1rem'}}>
+              <a rel="noreferrer" target='_blank' href={marker.tweetUrl} style={{opacity: '50%', fontSize: '0.7rem', marginRight: '.1rem'}}>
                 @{marker.tweetHandle}
               </a>
             </Popup>

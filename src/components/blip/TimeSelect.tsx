@@ -10,14 +10,40 @@ type TimeSelectProps = {
   setHours: (hours: number) => void
 }
 
+let firstTime = true;
+
 const TimeSelect: FC<TimeSelectProps> = (props) => {
   const [selectedTime, setSelectedTime] = useState<TimeOption>(props.options[props.defaultIndex]);
+
+  useEffect(() => {
+    // get localstorage data
+    if(typeof window !== "undefined") { // check if window is available (SSR)
+      if (!firstTime) return
+      firstTime = false
+      const localDateFrom = localStorage.getItem('dateFromIndex')
+      if (localDateFrom) {
+        const index = parseInt(localDateFrom)
+        if (index >= 0 && index < props.options.length) {
+          setSelectedTime(props.options[index])
+          props.setHours(props.options[index].hours)
+          console.log("Got localstorage data: ", index)
+        }
+      }
+    }
+  })
+
+  const setLocalStorage = (index: number) => {
+    if(typeof window !== "undefined") { // check if window is available (SSR)
+      localStorage.setItem('dateFromIndex', index.toString())
+    }
+  }
 
   const handleDecrement = () => {
     const index = props.options.indexOf(selectedTime)
     if (index > 0) {
       setSelectedTime(props.options[index - 1])
       props.setHours(props.options[index - 1].hours)
+      setLocalStorage(index - 1)
     }
   }
 
@@ -26,6 +52,7 @@ const TimeSelect: FC<TimeSelectProps> = (props) => {
     if (index < props.options.length - 1) {
       setSelectedTime(props.options[index + 1])
       props.setHours(props.options[index + 1].hours)
+      setLocalStorage(index + 1)
     }
   }
   
