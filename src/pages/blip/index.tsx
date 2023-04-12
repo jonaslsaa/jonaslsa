@@ -7,6 +7,7 @@ import type { MarkerData } from "../../components/blip/Map";
 
 import { prisma } from "../../server/db/client";
 import Link from "next/link";
+import TimeSelect from "../../components/blip/TimeSelect";
 
 const Map = dynamic(() => import('../../components/blip/Map'), { ssr: false })
 
@@ -62,8 +63,19 @@ const Home: NextPage<{ markerData: MarkerData[] }> = ({ markerData }) => {
               <div className="flex-shrink-0 flex items-center">
                 <span className="text-white font-bold text-lg">Blip - Real-time incident mapping</span>
               </div>
-              <div className="flex items-center">
-                <button onClick={() => setFindMe(true)} className="bg-gray-800 text-white px-3 py-2 rounded-sm text-sm font-medium" id="user-menu" aria-haspopup="true">
+              <div className="flex items-center gap-4">
+                <TimeSelect options={[
+                  {pretty: '1 h', hours: 1},
+                  {pretty: '3 h', hours: 3},
+                  {pretty: '6 h', hours: 6},
+                  {pretty: '12 h', hours: 12},
+                  {pretty: '24 h', hours: 24},
+                  {pretty: '2 d', hours: 48},
+                  {pretty: '3 d', hours: 72},
+                  {pretty: '5 d', hours: 120},
+                  {pretty: '1 w', hours: 168},
+                ]} setHours={() => {return;}} />
+                <button onClick={() => setFindMe(true)} className="bg-gray-800 text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-gray-700" id="user-menu" aria-haspopup="true">
                   Find me
                 </button>
               </div>
