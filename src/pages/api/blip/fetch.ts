@@ -203,14 +203,14 @@ function parseCompletion(tweet: MyTweet, completion: string) {
     }*/
     time = tweet.createdAt.toISOString();
     const type = lines[2].split(':')[1].trim()
-    let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | 'N/A' | null;
-    if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH' && severity !== 'N/A') {
+    let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | null;
+    if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH') {
       console.log('Invalid severity - Setting to LOW:', severity);
       severity = 'LOW'; // Default
     }
     const summary = lines[4].split(':')[1].trim();
-    if (type === 'N/A' || summary === 'N/A' || location === 'N/A' || severity === 'N/A') {
-      console.log('Marking tweet as invalid:', tweet.id);
+    if (type === 'N/A' || summary === 'N/A' || location === 'N/A') {
+      console.log('Marking tweet as invalid:', tweet.id, "-", type, location);
       severity = null; // Mark as invalid
     }
     return {location, time, type, severity, summary};
