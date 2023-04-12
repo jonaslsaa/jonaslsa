@@ -58,7 +58,7 @@ type LocatedTweet = CategorizedTweet & {
   lng: number;
 };
 
-const MAX_PAGES = 32;
+const MAX_PAGES = 48;
 const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   const rettiwt = Rettiwt();
   const tweetService = rettiwt.tweets;
@@ -138,21 +138,26 @@ ${tweet.content}`;
 
 
 async function callCompletionModel(prompt: string) {
-  const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
-    max_tokens: 512,
-    temperature: 0.6,
-    messages: [
-      { role: "system", content: "You are a helpful assistant." },
-      { role: "user", content: prompt },
-    ],
-  });
-  if (!completion.data || !completion.data.choices || !completion.data.usage) {
+  try {
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      max_tokens: 512,
+      temperature: 0.6,
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: prompt },
+      ],
+    });
+    if (!completion.data || !completion.data.choices || !completion.data.usage) {
+      return null;
+    }
+    const tokens = completion.data.usage.total_tokens;
+    const message = completion.data.choices[0]?.message?.content;
+    return {tokens, message};
+  } catch (e) {
+    console.error(e);
     return null;
   }
-  const tokens = completion.data.usage.total_tokens;
-  const message = completion.data.choices[0]?.message?.content;
-  return {tokens, message};
 }
 
 async function categorizeTweetText(tweetText: string) {
@@ -183,31 +188,36 @@ Location: SIMPLIFIED LOCATION`
 
 
 function parseCompletion(tweet: MyTweet, completion: string) {
-  const lines = completion.split('\n');
-  if (lines.length < 4) {
+  try {
+    const lines = completion.split('\n');
+    if (lines.length < 4) {
+      return null;
+    }
+    const location = lines[0].split(':')[1].trim();
+    let time = lines[1].split(':')[1].trim();
+    /*try {
+      if (time === 'N/A') throw new Error('N/A');
+      time = new Date(time).toISOString();
+    } catch (e) {
+      time = tweetCreated.toISOString();
+    }*/
+    time = tweet.createdAt.toISOString();
+    const type = lines[2].split(':')[1].trim()
+    let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | 'N/A' | null;
+    if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH' && severity !== 'N/A') {
+      console.log('Invalid severity - Setting to LOW:', severity);
+      severity = 'LOW'; // Default
+    }
+    const summary = lines[4].split(':')[1].trim();
+    if (type === 'N/A' || summary === 'N/A' || location === 'N/A' || severity === 'N/A') {
+      console.log('Marking tweet as invalid:', tweet.id);
+      severity = null; // Mark as invalid
+    }
+    return {location, time, type, severity, summary};
+  } catch (e) {
+    console.error('Error parsing completion', e);
     return null;
   }
-  const location = lines[0].split(':')[1].trim();
-  let time = lines[1].split(':')[1].trim();
-  /*try {
-    if (time === 'N/A') throw new Error('N/A');
-    time = new Date(time).toISOString();
-  } catch (e) {
-    time = tweetCreated.toISOString();
-  }*/
-  time = tweet.createdAt.toISOString();
-  const type = lines[2].split(':')[1].trim()
-  let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | 'N/A' | null;
-  if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH' && severity !== 'N/A') {
-    console.log('Invalid severity - Setting to LOW:', severity);
-    severity = 'LOW'; // Default
-  }
-  const summary = lines[4].split(':')[1].trim();
-  if (type === 'N/A' || summary === 'N/A' || location === 'N/A' || severity === 'N/A') {
-    console.log('Marking tweet as invalid:', tweet.id);
-    severity = null; // Mark as invalid
-  }
-  return {location, time, type, severity, summary};
 }
 
 const catogorizeTweets = async (tweets: MyTweet[]) => {
@@ -219,6 +229,7 @@ const catogorizeTweets = async (tweets: MyTweet[]) => {
       continue;
     }
     const completion = await categorizeTweetText(tweet.content);
+    
     if (!completion?.message) continue;
     total_tokens += completion.tokens;
     const parsedCompletion = parseCompletion(tweet, completion.message);
@@ -303,9 +314,9 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
   console.log(`Got ${tweets.length} tweets, took ${Date.now() - startTimer}ms`);
   const newTweets = await filterToNewTweets(tweets);
   console.log(`Got ${newTweets.length} new tweets`);
-  const mergedTweets = await mergeReplyToTweets(newTweets);
-  console.log(`Got ${mergedTweets.length} merged tweets`);
-  const { categorizedTweets, tokens } = await catogorizeTweets(mergedTweets);
+  const parentTweets = await mergeReplyToTweets(newTweets);
+  console.log(`Got ${parentTweets.length} parent tweets`);
+  const { categorizedTweets, tokens } = await catogorizeTweets(parentTweets);
   console.log(`Got ${categorizedTweets.length} categorized tweets`);
   const localizedTweets = await localizeTweets(categorizedTweets);
   console.log(`Got ${localizedTweets.length} localized tweets`);
