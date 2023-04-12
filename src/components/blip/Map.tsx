@@ -2,7 +2,7 @@ import React from 'react'
 import type { FC } from 'react'
 import "leaflet/dist/leaflet.css";
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet';
 
 type MapProps = {
@@ -25,6 +25,7 @@ export type MarkerData = {
 const markerIconHigh = new L.Icon({ iconUrl: '/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] }) 
 const markerIconMedium = new L.Icon({ iconUrl: '/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
 const markerIconLow = new L.Icon({ iconUrl: '/marker-blue.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconLocation = new L.Icon({ iconUrl: '/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
 
 const dateToStringTime = (date: Date) => {
   if (date.toLocaleDateString() !== new Date().toLocaleDateString()) { // if date is not today, also show date
@@ -32,6 +33,26 @@ const dateToStringTime = (date: Date) => {
   }
   return date.toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'})
 }
+
+function LocationMarker() {
+  const [position, setPosition] = React.useState<L.LatLng | null>(null)
+  const map = useMap()
+
+  React.useEffect(() => {
+    map.locate()
+    map.on('locationfound', (e) => {
+      setPosition(e.latlng)
+      map.flyTo(e.latlng, map.getZoom())
+    })
+  }, [map])
+
+  return position === null ? null : (
+    <Marker position={position} icon={markerIconLocation}>
+      <Popup>You are here</Popup>
+    </Marker>
+  )
+}
+
 
 const Map: FC<MapProps> = ({ markerData }) => {
   return (
@@ -58,6 +79,7 @@ const Map: FC<MapProps> = ({ markerData }) => {
             </Popup>
           </Marker>
         ))}
+        <LocationMarker />
     </MapContainer>
   )
 }
