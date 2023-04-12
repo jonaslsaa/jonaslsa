@@ -56,23 +56,24 @@ const Home: NextPage<{ markerData: MarkerData[] }> = ({ markerData }) => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-      <nav className="fixed top-0 left-0 w-full z-[2000] pl-10">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-12">
-            <div className="flex-shrink-0 flex items-center">
-              <Link legacyBehavior href="/">
-                <a className="text-white font-bold text-lg">Blip - Real-time incident mapping</a>
-              </Link>
-            </div>
-            <div className="flex items-center">
-              <button onClick={() => setFindMe(true)} className="bg-gray-800 text-white px-3 py-2 rounded-sm text-sm font-medium" id="user-menu" aria-haspopup="true">
-                Find me
-              </button>
+        <nav className="fixed top-0 left-0 w-full z-[2000] pl-10">
+          <div className="mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-12">
+              <div className="flex-shrink-0 flex items-center">
+                <span className="text-white font-bold text-lg">Blip - Real-time incident mapping</span>
+              </div>
+              <div className="flex items-center">
+                <button onClick={() => setFindMe(true)} className="bg-gray-800 text-white px-3 py-2 rounded-sm text-sm font-medium" id="user-menu" aria-haspopup="true">
+                  Find me
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
         <Map markerData={markerData} findMe={findMe} />
+        <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
+          by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
+        </div>
       </main>
     </>
   );
