@@ -49,7 +49,7 @@ type CategorizedTweet = MyTweet & {
   location: string;
   type: string;
   time: string;
-  severity: 'LOW' | 'MED' | 'HIGH';
+  severity: 'LOW' | 'MED' | 'HIGH' | null;
   summary: string;
 };
 
@@ -134,18 +134,7 @@ ${tweet.content}`;
 }
 
 
-async function callCompletionModel(tweetText: string) {
-  const prompt = `Tweet from Norwegiean police (norsk):
-${tweetText}
-Give direct answers, on each line, answer N/A if not applicable. Primary location or secondary (road) may be in hashtag (no #).
-
-Please give me the location, incident type (or crime), severity and one sentance summary in english.
-Format (only english):
-Location: PRIMARY, SECONDARY
-When: TIME (answer N/A if not specified)
-Type: SHORT INCIDENT TYPE
-Severity: LOW / MED / HIGH (must be one of these, crimes should be MED or HIGH)
-Summary: SHORT SUMMARY`
+async function callCompletionModel(prompt: string) {
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
     max_tokens: 512,
@@ -163,8 +152,34 @@ Summary: SHORT SUMMARY`
   return {tokens, message};
 }
 
+async function categorizeTweetText(tweetText: string) {
+  const prompt = `Tweet from Norwegiean police (norsk):
+${tweetText}
+Give direct answers, on each line, answer N/A if not applicable. Primary location or secondary (road) may be in hashtag (no #).
 
-function parseCompletion(tweetCreated: Date, completion: string) {
+Please give me the location, incident type (or crime), severity and one sentance summary in english.
+Format (only english):
+Location: PRIMARY, SECONDARY
+When: TIME (answer N/A if not specified)
+Type: SHORT INCIDENT TYPE
+Severity: LOW / MED / HIGH (must be one of these, crimes should be MED or HIGH)
+Summary: SHORT SUMMARY`
+  return await callCompletionModel(prompt);
+}
+
+async function simplifyLocationText(locationText: string) {
+  const prompt = `Simplify this location to a google place: E-39 Farvannsbakken v/avkjørsel Mjåvann, Kristiansand, Norway
+Format:
+Location: SIMPLIFIED LOCATION`
+  const completion = await callCompletionModel(prompt);
+  if (!completion || !completion.message) {
+    return null;
+  }
+  return completion.message.split(':')[1].trim();
+}
+
+
+function parseCompletion(tweet: MyTweet, completion: string) {
   const lines = completion.split('\n');
   if (lines.length < 4) {
     return null;
@@ -177,15 +192,17 @@ function parseCompletion(tweetCreated: Date, completion: string) {
   } catch (e) {
     time = tweetCreated.toISOString();
   }*/
-  time = tweetCreated.toISOString();
+  time = tweet.createdAt.toISOString();
   const type = lines[2].split(':')[1].trim()
-  let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH';
+  let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | null;
   if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH') {
+    console.log('Invalid severity - Setting to LOW:', severity);
     severity = 'LOW'; // Default
   }
   const summary = lines[4].split(':')[1].trim();
-  if (type === 'N/A' || summary === 'N/A') {
-    return null;
+  if (type === 'N/A' || summary === 'N/A' || location === 'N/A') {
+    console.log('Marking tweet as invalid:', tweet.id);
+    severity = null; // Mark as invalid
   }
   return {location, time, type, severity, summary};
 }
@@ -194,10 +211,14 @@ const catogorizeTweets = async (tweets: MyTweet[]) => {
   const categorizedTweets: CategorizedTweet[] = [];
   let total_tokens = 0;
   for (const tweet of tweets) {
-    const completion = await callCompletionModel(tweet.content);
+    if (tweet.content.length < 10) {
+      console.log('Skipping tweet with short content', tweet);
+      continue;
+    }
+    const completion = await categorizeTweetText(tweet.content);
     if (!completion?.message) continue;
     total_tokens += completion.tokens;
-    const parsedCompletion = parseCompletion(tweet.createdAt, completion.message);
+    const parsedCompletion = parseCompletion(tweet, completion.message);
     if (parsedCompletion) {
       categorizedTweets.push({
         ...tweet,
@@ -219,7 +240,7 @@ const findCoordinatesFromText = async (tweetHandle: string, text: string) => {
     const location = data.candidates[0].geometry.location;
     return {lat: location.lat, lng: location.lng};
   } else {
-    console.log("error getting place", data);
+    console.log("error getting place", data, text);
   }
   return null;
 }
@@ -227,8 +248,21 @@ const findCoordinatesFromText = async (tweetHandle: string, text: string) => {
 const localizeTweets = async (tweets: CategorizedTweet[]) => {
   const localizedTweets: LocatedTweet[] = [];
   for (const tweet of tweets) {
-    const coordinates = await findCoordinatesFromText(tweet.tweetHandle, tweet.location);
-    if (coordinates?.lat && coordinates?.lng) {
+    let coordinates: {lat: 0, lng: 0} | null = {lat: 0, lng: 0};
+    if (tweet.severity !== null) { // Only localize valid tweets
+      coordinates = await findCoordinatesFromText(tweet.tweetHandle, tweet.location);
+      if (coordinates === null) {
+        console.log("Could not find coordinates for", tweet.location, "trying to simplify...");
+        const simplifiedLocation = await simplifyLocationText(tweet.location);
+        if (simplifiedLocation) {
+          coordinates = await findCoordinatesFromText(tweet.tweetHandle, simplifiedLocation);
+        }
+        if (coordinates === null) {
+          console.log("Could not find coordinates for", simplifiedLocation, "giving up");
+        }
+      }
+    }
+    if (coordinates !== null) {
       localizedTweets.push({
         ...tweet,
         lat: coordinates.lat,
@@ -253,10 +287,15 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
   const usernameMap = await fetchHandleIdMap();
 
   const tweets = await getTodaysTweets(usernameMap);
+  console.log(`Got ${tweets.length} tweets`);
   const newTweets = await filterToNewTweets(tweets);
+  console.log(`Got ${newTweets.length} new tweets`);
   const mergedTweets = await mergeReplyToTweets(newTweets);
+  console.log(`Got ${mergedTweets.length} merged tweets`);
   const { categorizedTweets, tokens } = await catogorizeTweets(mergedTweets);
+  console.log(`Got ${categorizedTweets.length} categorized tweets`);
   const localizedTweets = await localizeTweets(categorizedTweets);
+  console.log(`Got ${localizedTweets.length} localized tweets`);
 
   // Save to database
   const saved = await prisma.incident.createMany({

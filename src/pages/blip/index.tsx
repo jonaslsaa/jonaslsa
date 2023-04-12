@@ -14,6 +14,9 @@ export async function getServerSideProps() {
     where: {
       time: { // last 72 hours
         gte: new Date(Date.now() - 72 * 60 * 60 * 1000)
+      },
+      severity: { // only show incidents with severity
+        not: null
       }
     }
   })
