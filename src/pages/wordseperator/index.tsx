@@ -22,7 +22,7 @@ function bestFromMap(map: Map<string, number>) {
 
 function seperateWords(dataFreq: Map<string, number>, text: string) {
   const words = text.split(' ');
-  const output = [];
+  const output: string[] = [];
   let fixedWords = 0;
   for (let i = 0; i < words.length; i++) {
     const word = words[i];

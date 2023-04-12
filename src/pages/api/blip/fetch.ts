@@ -65,7 +65,7 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   const tweetFilter = new TweetFilter({fromUsers: usersToScrape, startDate: startOfSearch.toISOString()});
   console.log('Fetching tweets from ' + startOfSearch.toISOString());
   const tweets: MyTweet[] = [];
-  let nextCursor = undefined;
+  let nextCursor: string | undefined = undefined;
   let i = 0;
   do {
     const tweetBatch: {next: {value: string}, list: Tweet[]} = await tweetService.getTweets(tweetFilter, 18, nextCursor);
