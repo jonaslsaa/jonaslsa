@@ -35,7 +35,7 @@ const userToLocationBias = new Map([
 ]);
 
 const startOfSearch = new Date();
-startOfSearch.setDate(startOfSearch.getDate() - 3);
+startOfSearch.setDate(startOfSearch.getDate() - 1);
 
 type MyTweet = {
   id: string;
@@ -58,7 +58,7 @@ type LocatedTweet = CategorizedTweet & {
   lng: number;
 };
 
-const MAX_PAGES = 16;
+const MAX_PAGES = 32;
 const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   const rettiwt = Rettiwt();
   const tweetService = rettiwt.tweets;
