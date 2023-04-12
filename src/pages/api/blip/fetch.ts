@@ -161,7 +161,7 @@ Please give me the location, incident type (or crime), severity and one sentance
 Format (only english):
 Location: PRIMARY, SECONDARY
 When: TIME (answer N/A if not specified)
-Type: SHORT INCIDENT TYPE
+Type: SHORT INCIDENT TYPE (or crime, in english)
 Severity: LOW / MED / HIGH (must be one of these, crimes should be MED or HIGH)
 Summary: SHORT SUMMARY`
   return await callCompletionModel(prompt);

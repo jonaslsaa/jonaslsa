@@ -3,51 +3,52 @@ import dynamic from 'next/dynamic'
 import Head from "next/head";
 import { useRef, useState } from "react";
 import React from "react";
-import type { MarkerData } from "../../components/blip/Map";
+import { trpc } from "../../utils/trpc";
 
-import { prisma } from "../../server/db/client";
+import type { MarkerData } from "../../components/blip/Map";
 import Link from "next/link";
 import TimeSelect from "../../components/blip/TimeSelect";
 
 const Map = dynamic(() => import('../../components/blip/Map'), { ssr: false })
 
-export async function getServerSideProps() {
-  const incidents = await prisma.incident.findMany({
-    where: {
-      time: { // last 72 hours
-        gte: new Date(Date.now() - 72 * 60 * 60 * 1000)
-      },
-      severity: { // only show incidents with severity
-        not: null
-      }
-    }
-  })
-  
-  const markerData: MarkerData[] = incidents.map(incident => {
-    return {
-      id: incident.id,
-      tweetUrl: 'https://twitter.com/' + incident.fromTwitterHandle + '/status/' + incident.tweetId,
-      tweetHandle: incident.fromTwitterHandle,
-      lat: incident.lat,
-      lng: incident.lng,
-      location: incident.location,
-      time: incident.time.toISOString(),
-      type: incident.type,
-      severity: incident.severity as ("LOW" | "MED" | "HIGH") | null,
-      summary: incident.summary
-    }
-  })
+const timeSelectOptions = [
+  {pretty: '1 h', hours: 1},
+  {pretty: '3 h', hours: 3},
+  {pretty: '6 h', hours: 6},
+  {pretty: '12 h', hours: 12},
+  {pretty: '24 h', hours: 24},
+  {pretty: '2 d', hours: 48},
+  {pretty: '3 d', hours: 72},
+  {pretty: '5 d', hours: 120},
+  {pretty: '1 w', hours: 168},
+];
+const defaultTimeSelectIndex = 5;
+const defaultFromDate = new Date();
+defaultFromDate.setHours(defaultFromDate.getHours() - timeSelectOptions[defaultTimeSelectIndex].hours);
 
-  return {
-    props: {
-      markerData
-    }
-  }
-}
-
-const Home: NextPage<{ markerData: MarkerData[] }> = ({ markerData }) => {
-
+const Home: NextPage = () => {
   const [findMe, setFindMe] = useState(false)
+  const [markerData, setMarkerData] = useState<MarkerData[]>([])
+  const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
+  const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
+    onSuccess: (data) => {
+      if (data) {
+        console.log("Got data, with fromDate: ", data.fromDate)
+        setMarkerData(data.markerData)
+      }
+    },
+    onError: (error) => {
+      console.log(error)
+    }
+  })
+
+
+  const setHours = (hours: number) => {
+    const newDate = new Date();
+    newDate.setHours(newDate.getHours() - hours);
+    console.log("Setting hours to: ", hours, " with new date: ", newDate)
+    setDateFrom(newDate);
+  }
 
   return ( 
     <>
@@ -64,17 +65,7 @@ const Home: NextPage<{ markerData: MarkerData[] }> = ({ markerData }) => {
                 <span className="text-white font-bold text-lg">Blip - Real-time incident mapping</span>
               </div>
               <div className="flex items-center gap-4">
-                <TimeSelect options={[
-                  {pretty: '1 h', hours: 1},
-                  {pretty: '3 h', hours: 3},
-                  {pretty: '6 h', hours: 6},
-                  {pretty: '12 h', hours: 12},
-                  {pretty: '24 h', hours: 24},
-                  {pretty: '2 d', hours: 48},
-                  {pretty: '3 d', hours: 72},
-                  {pretty: '5 d', hours: 120},
-                  {pretty: '1 w', hours: 168},
-                ]} setHours={() => {return;}} />
+                <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
                 <button onClick={() => setFindMe(true)} className="bg-gray-800 text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-gray-700" id="user-menu" aria-haspopup="true">
                   Find me
                 </button>

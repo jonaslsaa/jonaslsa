@@ -6,20 +6,18 @@ type TimeOption = {pretty: string, hours: number};
 
 type TimeSelectProps = {
   options : TimeOption[]
+  defaultIndex: number
   setHours: (hours: number) => void
 }
 
 const TimeSelect: FC<TimeSelectProps> = (props) => {
-  const [selectedTime, setSelectedTime] = useState<TimeOption>(props.options[0]);
-
-  useEffect(() => {
-    props.setHours(selectedTime.hours)
-  }, [props, selectedTime])
+  const [selectedTime, setSelectedTime] = useState<TimeOption>(props.options[props.defaultIndex]);
 
   const handleDecrement = () => {
     const index = props.options.indexOf(selectedTime)
     if (index > 0) {
       setSelectedTime(props.options[index - 1])
+      props.setHours(props.options[index - 1].hours)
     }
   }
 
@@ -27,6 +25,7 @@ const TimeSelect: FC<TimeSelectProps> = (props) => {
     const index = props.options.indexOf(selectedTime)
     if (index < props.options.length - 1) {
       setSelectedTime(props.options[index + 1])
+      props.setHours(props.options[index + 1].hours)
     }
   }
   
