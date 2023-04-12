@@ -40,7 +40,7 @@ function LocationMarker() {
   const map = useMap()
 
   React.useEffect(() => {
-    map.locate()
+    map.locate({setView: true, maxZoom: 12})
     map.on('locationfound', (e) => {
       setPosition(e.latlng)
       map.flyTo(e.latlng, map.getZoom())
