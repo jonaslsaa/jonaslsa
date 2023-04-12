@@ -6,6 +6,7 @@ import React from "react";
 import type { MarkerData } from "../../components/blip/Map";
 
 import { prisma } from "../../server/db/client";
+import Link from "next/link";
 
 const Map = dynamic(() => import('../../components/blip/Map'), { ssr: false })
 
@@ -45,6 +46,8 @@ export async function getServerSideProps() {
 
 const Home: NextPage<{ markerData: MarkerData[] }> = ({ markerData }) => {
 
+  const [findMe, setFindMe] = useState(false)
+
   return ( 
     <>
       <Head>
@@ -53,7 +56,23 @@ const Home: NextPage<{ markerData: MarkerData[] }> = ({ markerData }) => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-        <Map markerData={markerData} />
+      <nav className="fixed top-0 left-0 w-full z-[2000] pl-10">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-12">
+            <div className="flex-shrink-0 flex items-center">
+              <Link legacyBehavior href="/">
+                <a className="text-white font-bold text-lg">Blip - Real-time incident mapping</a>
+              </Link>
+            </div>
+            <div className="flex items-center">
+              <button onClick={() => setFindMe(true)} className="bg-gray-800 text-white px-3 py-2 rounded-sm text-sm font-medium" id="user-menu" aria-haspopup="true">
+                Find me
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+        <Map markerData={markerData} findMe={findMe} />
       </main>
     </>
   );

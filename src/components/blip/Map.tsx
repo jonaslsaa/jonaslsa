@@ -6,7 +6,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet';
 
 type MapProps = {
-  markerData: MarkerData[]
+  markerData: MarkerData[],
+  findMe: boolean
 }
 
 export type MarkerData = {
@@ -47,14 +48,14 @@ function LocationMarker() {
   }, [map])
 
   return position === null ? null : (
-    <Marker position={position} icon={markerIconLocation}>
+    <Marker position={position} icon={markerIconLocation} zIndexOffset={1000}>
       <Popup>You are here</Popup>
     </Marker>
   )
 }
 
 
-const Map: FC<MapProps> = ({ markerData }) => {
+const Map: FC<MapProps> = ({ markerData, findMe }) => {
   return (
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
         <TileLayer
@@ -79,7 +80,7 @@ const Map: FC<MapProps> = ({ markerData }) => {
             </Popup>
           </Marker>
         ))}
-        <LocationMarker />
+        {findMe && <LocationMarker />}
     </MapContainer>
   )
 }
