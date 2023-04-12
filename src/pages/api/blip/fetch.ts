@@ -245,11 +245,21 @@ const findCoordinatesFromText = async (tweetHandle: string, text: string) => {
   return null;
 }
 
+function cleanUpTweetLocationText(text: string) {
+  text = text.replace('N/A', '').trim(); // Remove N/A
+  text = text.replace('n/a', '').trim(); // Remove n/a
+  if (text.endsWith(',')) text = text.slice(0, -1); // Remove trailing comma
+  if (text.startsWith(',')) text = text.slice(1); // Remove leading comma
+  return text.trim();
+}
+
 const localizeTweets = async (tweets: CategorizedTweet[]) => {
   const localizedTweets: LocatedTweet[] = [];
   for (const tweet of tweets) {
     let coordinates: {lat: 0, lng: 0} | null = {lat: 0, lng: 0};
     if (tweet.severity !== null) { // Only localize valid tweets
+      tweet.location = cleanUpTweetLocationText(tweet.location);
+      if (tweet.location.length <= 1) continue; // Skip tweets with next to no location text
       coordinates = await findCoordinatesFromText(tweet.tweetHandle, tweet.location);
       if (coordinates === null) {
         console.log("Could not find coordinates for", tweet.location, "trying to simplify...");
