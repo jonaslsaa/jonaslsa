@@ -62,7 +62,7 @@ const Home: NextPage = () => {
           <div className="mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-12">
               <div className="flex-shrink-0 flex items-center">
-                <span className="text-white font-bold text-lg">Blip - Real-time incident mapping</span>
+                <span className="text-white text-md">Blip - Real-time incident mapping</span>
               </div>
               <div className="flex items-center gap-4">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
