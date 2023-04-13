@@ -23,10 +23,37 @@ export type MarkerData = {
   summary: string
 }
 
-const markerIconHigh = new L.Icon({ iconUrl: '/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] }) 
-const markerIconMedium = new L.Icon({ iconUrl: '/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
-const markerIconLow = new L.Icon({ iconUrl: '/marker-blue.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
-const markerIconLocation = new L.Icon({ iconUrl: '/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
+const markerIconLocation = new L.Icon({ iconUrl: '/markers/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
+
+const markerIconHigh = new L.Icon({ iconUrl: '/markers/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconMedium = new L.Icon({ iconUrl: '/markers/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconLow = new L.Icon({ iconUrl: '/markers/marker-blue.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+
+const markerIconHighTraffic = new L.Icon({ iconUrl: '/markers/marker-red-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconMediumTraffic = new L.Icon({ iconUrl: '/markers/marker-yellow-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconLowTraffic = new L.Icon({ iconUrl: '/markers/marker-blue-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+
+
+const markerToIcon = (marker: MarkerData) => {
+  const markerType = marker.type.toLowerCase()
+  const isVehicle = markerType.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving|speed/) !== null
+  const isVehicleAccident = markerType.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
+  const showTrafficAccident = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision|speeding/) !== null
+  switch (marker.severity) {
+    case "HIGH":
+      if (showTrafficAccident) return markerIconHighTraffic
+      return markerIconHigh
+    case "MED":
+      if (showTrafficAccident) return markerIconMediumTraffic
+      return markerIconMedium
+    case "LOW":
+      if (showTrafficAccident) return markerIconLowTraffic
+      return markerIconLow
+    default:
+      console.error("Unknown severity: ", marker.severity)
+      return markerIconLow
+  }
+}
 
 const dateToStringTime = (date: Date) => {
   if (date.toLocaleDateString() !== new Date().toLocaleDateString()) { // if date is not today, also show date
@@ -54,7 +81,6 @@ function LocationMarker() {
   )
 }
 
-
 const Map: FC<MapProps> = ({ markerData, findMe }) => {
   return (
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
@@ -63,7 +89,7 @@ const Map: FC<MapProps> = ({ markerData, findMe }) => {
           url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
         />
         {markerData.map((marker) => (
-          <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={marker.severity === 'HIGH' ? markerIconHigh : marker.severity === 'MED' ? markerIconMedium : markerIconLow}>
+          <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerToIcon(marker)}>
             <Popup>
               <span style={{float: 'right', opacity: '65%', fontSize: '0.7rem', marginRight: '.1rem'}}>
                 {dateToStringTime(typeof marker.time === 'string' ? new Date(marker.time) : marker.time)}
