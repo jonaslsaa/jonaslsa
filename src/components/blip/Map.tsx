@@ -25,29 +25,38 @@ export type MarkerData = {
 
 const markerIconLocation = new L.Icon({ iconUrl: '/markers/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
 
-const markerIconHigh = new L.Icon({ iconUrl: '/markers/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
-const markerIconMedium = new L.Icon({ iconUrl: '/markers/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
-const markerIconLow = new L.Icon({ iconUrl: '/markers/marker-blue.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconHigh = new L.Icon({ iconUrl: '/markers/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconMedium = new L.Icon({ iconUrl: '/markers/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconLow = new L.Icon({ iconUrl: '/markers/marker-blue.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] })
 
-const markerIconHighTraffic = new L.Icon({ iconUrl: '/markers/marker-red-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
-const markerIconMediumTraffic = new L.Icon({ iconUrl: '/markers/marker-yellow-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
-const markerIconLowTraffic = new L.Icon({ iconUrl: '/markers/marker-blue-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -15] })
+const markerIconHighTraffic = new L.Icon({ iconUrl: '/markers/marker-red-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconMediumTraffic = new L.Icon({ iconUrl: '/markers/marker-yellow-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconLowTraffic = new L.Icon({ iconUrl: '/markers/marker-blue-traffic.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] })
 
+const markerIconHighFire = new L.Icon({ iconUrl: '/markers/marker-red-fire.png', iconSize: [20, 25], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconMediumFire = new L.Icon({ iconUrl: '/markers/marker-yellow-fire.png', iconSize: [20, 25], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconLowFire = new L.Icon({ iconUrl: '/markers/marker-blue-fire.png', iconSize: [20, 25], iconAnchor: [10, 10], popupAnchor: [0, -12] })
 
 const markerToIcon = (marker: MarkerData) => {
   const markerType = marker.type.toLowerCase()
   const isVehicle = markerType.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving|speed/) !== null
   const isVehicleAccident = markerType.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
   const showTrafficAccident = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision|speeding/) !== null
+
+  const isFire = markerType.match(/fire|smoke|burning|burnt|burn/) !== null
+
   switch (marker.severity) {
     case "HIGH":
       if (showTrafficAccident) return markerIconHighTraffic
+      if (isFire) return markerIconHighFire
       return markerIconHigh
     case "MED":
       if (showTrafficAccident) return markerIconMediumTraffic
+      if (isFire) return markerIconMediumFire
       return markerIconMedium
     case "LOW":
       if (showTrafficAccident) return markerIconLowTraffic
+      if (isFire) return markerIconLowFire
       return markerIconLow
     default:
       console.error("Unknown severity: ", marker.severity)
