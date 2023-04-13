@@ -161,29 +161,30 @@ async function callCompletionModel(prompt: string) {
 }
 
 async function categorizeTweetText(tweetText: string) {
-  const prompt = `Tweet from Norwegiean police (norsk):
+  const prompt = `[INCIDENT FROM POLICE]
 ${tweetText}
-Give direct answers, on each line, answer N/A if not applicable. Primary location or secondary (road) may be in hashtag (no #).
-
-Please give me the location, incident type (or crime), severity and one sentance summary in english.
-Format (only english):
-Location: PRIMARY, SECONDARY
-When: TIME (answer N/A if not specified)
-Type: SHORT INCIDENT TYPE (or crime, english only)
-Severity: LOW / MED / HIGH (must be one of these, crimes should be MED or HIGH)
-Summary: SHORT SUMMARY`
+Only answer N/A when unknown. Only answer in following in this exact format:
+Location: PRIMARY, SECONDARY (no #)
+Type: SHORT INCIDENT TYPE (english)
+Severity: LOW/MED/HIGH (must be one of these)
+Summary: SHORT SUMMARY (just "N/A" when not applicable)`
   return await callCompletionModel(prompt);
 }
 
 async function simplifyLocationText(locationText: string) {
-  const prompt = `Simplify this location to a google place: E-39 Farvannsbakken v/avkjørsel Mjåvann, Kristiansand, Norway
+  const prompt = `Simplify/strip this location place: ${locationText}
 Format:
 Location: SIMPLIFIED LOCATION`
   const completion = await callCompletionModel(prompt);
   if (!completion || !completion.message) {
     return null;
   }
-  return completion.message.split(':')[1].trim();
+  try {
+    return completion.message.split(':')[1].trim();
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 }
 
 
@@ -194,21 +195,14 @@ function parseCompletion(tweet: MyTweet, completion: string) {
       return null;
     }
     const location = lines[0].split(':')[1].trim();
-    let time = lines[1].split(':')[1].trim();
-    /*try {
-      if (time === 'N/A') throw new Error('N/A');
-      time = new Date(time).toISOString();
-    } catch (e) {
-      time = tweetCreated.toISOString();
-    }*/
-    time = tweet.createdAt.toISOString();
-    const type = lines[2].split(':')[1].trim()
-    let severity = lines[3].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | null;
+    const time = tweet.createdAt.toISOString();
+    const type = lines[1].split(':')[1].trim()
+    let severity = lines[2].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | null;
     if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH') {
       console.log('Invalid severity - Setting to LOW:', severity);
       severity = 'LOW'; // Default
     }
-    const summary = lines[4].split(':')[1].trim();
+    const summary = lines[3].split(':')[1].trim();
     if (type === 'N/A' || summary === 'N/A' || location === 'N/A') {
       console.log('Marking tweet as invalid:', tweet.id, "-", type, location);
       severity = null; // Mark as invalid
