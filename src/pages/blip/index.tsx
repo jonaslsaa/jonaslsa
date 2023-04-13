@@ -58,17 +58,19 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-        <nav className="fixed top-0 left-0 w-full z-[2000] pl-10">
-          <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="fixed top-0 left-0 w-full z-[2000] pt-1 pr-1 md:pl-10">
+          <div className="mx-auto md:pl-3">
             <div className="flex justify-between h-12">
-              <div className="flex-shrink-0 flex items-center">
-                <span className="text-white text-md">Blip - Real-time incident mapping</span>
+              <div className="flex-shrink-0 flex items-center w-1 md:w-auto">
+                <span className="text-transparent md:text-gray-200 text-md"><b>Blip</b> - Real-time incident mapping</span>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex gap-1 flex-col md:items-start md:gap-2 md:flex-row">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
-                <button onClick={() => setFindMe(true)} className="bg-gray-800 text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-gray-700" id="user-menu" aria-haspopup="true">
-                  Find me
-                </button>
+                <div className="flex justify-end">
+                  <button onClick={() => setFindMe(true)} className="bg-gray-800 max-w-[5rem] text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-gray-700" id="user-menu" aria-haspopup="true">
+                    Find me
+                  </button>
+                </div>
               </div>
             </div>
           </div>

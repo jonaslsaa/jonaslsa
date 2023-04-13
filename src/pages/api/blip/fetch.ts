@@ -20,7 +20,9 @@ const usersToScrape = [
   'politiinnlandet',
   'politinordland',
   'politifinnmark',
-  'PolitiTrondelag'
+  'PolitiTrondelag',
+  'PolitiMRpd',
+  'politivest',
 ]
 const userToLocationBias = new Map([
   ['politietsorost',  'point:59.2736681, 10.40305903'],
@@ -31,7 +33,9 @@ const userToLocationBias = new Map([
   ['politiinnlandet', 'point:60.7960557, 11.09422286'],
   ['politinordland',  'point:67.2886571, 14.39942244'],
   ['politifinnmark',  'point:69.7306470, 30.02526065'],
-  ['PolitiTrondelag', 'point:63.4397447, 10.39951882']
+  ['PolitiTrondelag', 'point:63.4397447, 10.39951882'],
+  ['PolitiMRpd',      'point:62.4767951, 6.143121702'],
+  ['politivest',      'point:60.3929948, 5.329137019']
 ]);
 
 const startOfSearch = new Date();
