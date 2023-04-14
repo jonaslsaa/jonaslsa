@@ -2,12 +2,15 @@ import Link from 'next/link'
 import React, { useState } from 'react'
 import type { FC } from 'react'
 import type { markerFilterType, markerSeverityType } from './Map';
+import type { TwitterHandleFilters } from '../../pages/blip';
 
 type DropdownPanelProps = {
   filters : Record<markerFilterType, boolean>
   severityFilters: Record<markerSeverityType, boolean>
+  twitterHandleFilters: TwitterHandleFilters
   setFilters: (filters: Record<markerFilterType, boolean>) => void
   setSeverityFilters: (filters: Record<markerSeverityType, boolean>) => void
+  setTwitterHandleFilters: (filters: TwitterHandleFilters) => void
 }
 
 const capitalizeString = (s: string) => {
@@ -32,7 +35,7 @@ const markerFilterTypeToPretty = (s: markerFilterType) => {
   }
 }
 
-const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFilters, setSeverityFilters}) => {
+const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFilters, setSeverityFilters, twitterHandleFilters, setTwitterHandleFilters}) => {
   const [isOpen, setIsOpen] = useState(false)
 
   // check if user presses escape key
@@ -101,7 +104,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
                 {Object.entries(filters).map(([key, value]) => (
                   <div key={key} className={"flex items-center pl-4 border rounded border-gray-700 hover:border-gray-100" + (value ? " bg-gray-700/10 " : "")}
                     onClick={() => setFilters({...filters, [key]: !value})}>
-                    <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" checked={value}
+                    <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" readOnly checked={value}
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
                     <label className="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"><img className='inline mr-1' width={20} src={LowIconsUri[key]} alt={'Filter icon'} /> {markerFilterTypeToPretty(key as markerFilterType)}</label>
                   </div>
@@ -112,9 +115,25 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
                 {Object.entries(severityFilters).map(([key, value]) => (
                   <div key={key} className={"flex items-center pl-4 border rounded border-gray-700 hover:border-gray-100" + (value ? " bg-gray-700/10 " : "")}
                     onClick={() => setSeverityFilters({...severityFilters, [key]: !value})}>
-                    <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" checked={value}
+                    <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" readOnly checked={value}
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
                     <label className="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"><img className='inline mr-1' width={20} src={SeverityIconsUri[key as markerSeverityType]} alt={'Filter icon'} /> {capitalizeString(key as markerSeverityType)}</label>
+                  </div>
+                ))}
+              </div>
+              <h2 className='mt-4'>Twitter accounts</h2>
+              <div className='flex flex-col mt-4 gap-1'>
+                {Object.entries(twitterHandleFilters).map(([key, value]) => (
+                  <div key={key}>
+                    <h3>{capitalizeString(key)}</h3>
+                    {Object.entries(value).map(([key2, value]) => (
+                      <div key={key2} className={"flex items-center pl-4 border rounded border-gray-700 hover:border-gray-100" + (value ? " bg-gray-700/10 " : "")}
+                        onClick={() => setTwitterHandleFilters({...twitterHandleFilters, [key]: {...twitterHandleFilters[key], [key2]: !value}})}>
+                        <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" readOnly checked={value}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <label className="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{key2}</label>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
