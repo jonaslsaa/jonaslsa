@@ -27,7 +27,9 @@ export type MarkerData = {
 
 const markerIconLocation = new L.Icon({ iconUrl: '/markers/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
 
-const markerIconMap = {
+type markerIconMapType = 'default' | 'traffic' | 'fire' | 'speed'
+type markerIconSeverityType = 'LOW' | 'MED' | 'HIGH'
+const markerIconMap: Record<markerIconMapType, Record<markerIconSeverityType, L.Icon>> = {
   default: {
     HIGH: new L.Icon({ iconUrl: '/markers/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
     MED: new L.Icon({ iconUrl: '/markers/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
@@ -59,7 +61,7 @@ const markerToIcon = (marker: MarkerData) => {
   const isSpeeding = markerType.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
   const isFire = markerType.match(/fire|smoke|burning|burnt|burn/) !== null
 
-  let customIcon = 'default'
+  let customIcon: markerIconMapType = 'default'
   if (showTrafficAccident) customIcon = 'traffic'
   if (isSpeeding) customIcon = 'speed'
   if (isFire) customIcon = 'fire'
