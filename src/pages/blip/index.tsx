@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import React from "react";
 import { trpc } from "../../utils/trpc";
 
-import type { MarkerData, markerFilterType } from "../../components/blip/Map";
+import type { MarkerData, markerFilterType, markerSeverityType } from "../../components/blip/Map";
 import Link from "next/link";
 import TimeSelect from "../../components/blip/TimeSelect";
 import DropdownPanel from "../../components/blip/DropdownPanel";
@@ -36,11 +36,18 @@ const defaultFilters: Record<markerFilterType, boolean> = {
   missing: true,
 }
 
+const defaultSeverityFilters: Record<markerSeverityType, boolean> = {
+  HIGH: true,
+  MED: true,
+  LOW: true,
+}
+
 const Home: NextPage = () => {
   const [findMe, setFindMe] = useState(0)
   const [markerData, setMarkerData] = useState<MarkerData[]>([])
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
   const [filters, setFilters] = useState(defaultFilters)
+  const [severityFilters, setSeverityFilters] = useState(defaultSeverityFilters)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
     onSuccess: (data) => {
       if (data) {
@@ -77,7 +84,7 @@ const Home: NextPage = () => {
             <div className="flex justify-between h-12">
               <div className="mt-2">
                 <span className="text-md text-gray-200 hidden md:block mb-1"><b>Blip</b> - Real-time incident mapping</span>
-                <DropdownPanel filters={filters} setFilters={setFilters} />
+                <DropdownPanel filters={filters} setFilters={setFilters} severityFilters={severityFilters} setSeverityFilters={setSeverityFilters} />
               </div>
               <div className="flex gap-1 flex-col md:items-start md:gap-2 md:flex-row">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
@@ -90,7 +97,7 @@ const Home: NextPage = () => {
             </div>
           </div>
         </nav>
-        <Map markerData={markerData} findMe={findMe} filters={filters} />
+        <Map markerData={markerData} findMe={findMe} filters={filters} severityFilters={severityFilters} />
         <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
         </div>

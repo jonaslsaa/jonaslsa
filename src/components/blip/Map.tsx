@@ -10,7 +10,8 @@ import seedrandom from 'seedrandom';
 type MapProps = {
   markerData: MarkerData[],
   findMe: number,
-  filters : Record<markerFilterType, boolean>
+  filters : Record<markerFilterType, boolean>,
+  severityFilters: Record<markerSeverityType, boolean>
 }
 
 export type MarkerData = {
@@ -30,8 +31,8 @@ const markerIconLocation = new L.Icon({ iconUrl: '/markers/location-marker.png',
 
 export type markerFilterType = 'default' | 'traffic' | 'fire' | 'speed' | 'missing'
 
-export type markerIconSeverityType = 'LOW' | 'MED' | 'HIGH'
-const markerIconMap: Record<markerFilterType, Record<markerIconSeverityType, L.Icon>> = {
+export type markerSeverityType = 'LOW' | 'MED' | 'HIGH'
+const markerIconMap: Record<markerFilterType, Record<markerSeverityType, L.Icon>> = {
   default: {
     HIGH: new L.Icon({ iconUrl: '/markers/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
     MED: new L.Icon({ iconUrl: '/markers/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
@@ -143,12 +144,16 @@ const fixOverlappingMarkers = (markerData: MarkerData[]) => {
   return fixedMarkerData
 }
 
-const filterMarkers = (markerData: MarkerData[], filtersMap: Record<markerFilterType, boolean>) => {
+const filterMarkers = (markerData: MarkerData[], filtersMap: Record<markerFilterType, boolean>, severityMap: Record<markerSeverityType, boolean>) => {
   const filteredMarkerData: MarkerData[] = []
   for (const marker of markerData) {
+    let shouldPush = false
     const filterType = markerToFilterType(marker)
     for (const filterTypeKey in filterType) {
-      if (filterType[filterTypeKey as markerFilterType] && filtersMap[filterTypeKey as markerFilterType]) {
+      if (filterType[filterTypeKey as markerFilterType] && filtersMap[filterTypeKey as markerFilterType] && marker.severity && severityMap[marker.severity]) {
+        shouldPush = true
+      }
+      if (shouldPush) {
         filteredMarkerData.push(marker)
         break
       }
@@ -157,14 +162,14 @@ const filterMarkers = (markerData: MarkerData[], filtersMap: Record<markerFilter
   return filteredMarkerData
 }
 
-const Map: FC<MapProps> = ({ markerData, findMe, filters }) => {
+const Map: FC<MapProps> = ({ markerData, findMe, filters, severityFilters }) => {
   return (
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {fixOverlappingMarkers(filterMarkers(markerData, filters)).map((marker) => (
+        {fixOverlappingMarkers(filterMarkers(markerData, filters, severityFilters)).map((marker) => (
           <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerToIcon(marker)}>
             <Popup>
               <span style={{float: 'right', opacity: '65%', fontSize: '0.7rem', marginRight: '.1rem'}}>
