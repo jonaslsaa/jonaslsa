@@ -59,6 +59,15 @@ const markerIconMap: Record<markerFilterType, Record<markerIconSeverityType, L.I
   }
 }
 
+
+export const LowIconsUri: Record<markerFilterType, string> = {
+  default: '/markers/marker-blue.png',
+  traffic: '/markers/marker-blue-traffic.png',
+  fire: '/markers/marker-blue-fire.png',
+  speed: '/markers/marker-blue-speed.png',
+  missing: '/markers/marker-blue-missing.png'
+}
+
 function markerToFilterType(marker: MarkerData) {
   const markerFilterTypes: Record<markerFilterType, boolean> = {
     default: false,
