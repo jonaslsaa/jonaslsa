@@ -64,6 +64,13 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters}) => {
     setFilters(newFilters)
   }
 
+  const LowIconsUri: Record<markerFilterType, string> = {
+    default: '/markers/marker-blue.png',
+    traffic: '/markers/marker-blue-traffic.png',
+    fire: '/markers/marker-blue-fire.png',
+    speed: '/markers/marker-blue-speed.png',
+    missing: '/markers/marker-blue-missing.png'
+  }
   
   return (
     <div>
