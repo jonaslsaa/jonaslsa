@@ -37,25 +37,33 @@ const markerIconHighFire = new L.Icon({ iconUrl: '/markers/marker-red-fire.png',
 const markerIconMediumFire = new L.Icon({ iconUrl: '/markers/marker-yellow-fire.png', iconSize: [20, 25], iconAnchor: [10, 10], popupAnchor: [0, -12] })
 const markerIconLowFire = new L.Icon({ iconUrl: '/markers/marker-blue-fire.png', iconSize: [20, 25], iconAnchor: [10, 10], popupAnchor: [0, -12] })
 
+const markerIconHighSpeeding = new L.Icon({ iconUrl: '/markers/marker-red-speed.png', iconSize: [22, 24], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconMediumSpeeding = new L.Icon({ iconUrl: '/markers/marker-yellow-speed.png', iconSize: [22, 24], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+const markerIconLowSpeeding = new L.Icon({ iconUrl: '/markers/marker-blue-speed.png', iconSize: [22, 24], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+
 const markerToIcon = (marker: MarkerData) => {
   const markerType = marker.type.toLowerCase()
   const isVehicle = markerType.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving|speed/) !== null
   const isVehicleAccident = markerType.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
-  const showTrafficAccident = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision|speeding/) !== null
+  const showTrafficAccident = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision/) !== null
+  const isSpeeding = markerType.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
 
   const isFire = markerType.match(/fire|smoke|burning|burnt|burn/) !== null
 
   switch (marker.severity) {
     case "HIGH":
       if (showTrafficAccident) return markerIconHighTraffic
+      if (isSpeeding) return markerIconHighSpeeding
       if (isFire) return markerIconHighFire
       return markerIconHigh
     case "MED":
       if (showTrafficAccident) return markerIconMediumTraffic
+      if (isSpeeding) return markerIconMediumSpeeding
       if (isFire) return markerIconMediumFire
       return markerIconMedium
     case "LOW":
       if (showTrafficAccident) return markerIconLowTraffic
+      if (isSpeeding) return markerIconLowSpeeding
       if (isFire) return markerIconLowFire
       return markerIconLow
     default:
