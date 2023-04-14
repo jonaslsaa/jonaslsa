@@ -2,7 +2,7 @@ import Link from 'next/link'
 import React, { useState } from 'react'
 import type { FC } from 'react'
 import Image from 'next/image'
-import { LowIconsUri, markerFilterType } from './Map';
+import type { markerFilterType } from './Map';
 
 type DropdownPanelProps = {
   filters : Record<markerFilterType, boolean>
