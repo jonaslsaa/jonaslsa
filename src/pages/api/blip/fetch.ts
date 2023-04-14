@@ -6,36 +6,13 @@ import type { Tweet} from "rettiwt-api";
 import { Rettiwt, TweetFilter } from "rettiwt-api"
 import { env } from "../../../env/server.mjs";
 import { Configuration, OpenAIApi } from "openai";
+import { usersToScrape } from "../../../server/common/usersToScrape";
 
 const openai = new OpenAIApi(new Configuration({ apiKey: env.OPENAI_API_KEY }));
 
 const AUTH_TOKEN = "perlerdarlig"; // temporary
 
-const usersToScrape = {
-  police: [
-    'politietsorost',
-    'oslopolitiops',
-    'politietost',
-    'politietsorvest',
-    'politiagder',
-    'politiinnlandet',
-    'politinordland',
-    'politifinnmark',
-    'PolitiTrondelag',
-    'PolitiMRpd',
-    'politivest',
-  ],
-  fire: [
-    '110Vest',
-    '110Bodo',
-    '110Innlandet',
-    'sorost110',
-    'Oslo110sentral'
-  ],
-}
-
-
-export const usersToScrapeList = Object.values(usersToScrape).flat();
+const usersToScrapeList = Object.values(usersToScrape).flat();
 
 const userToLocationBias = new Map([
   // Police
