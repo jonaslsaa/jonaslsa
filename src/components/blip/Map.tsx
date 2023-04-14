@@ -103,7 +103,7 @@ const Map: FC<MapProps> = ({ markerData, findMe }) => {
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
         />
         {markerData.map((marker) => (
           <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerToIcon(marker)}>
