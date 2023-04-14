@@ -38,8 +38,11 @@ const Home: NextPage = () => {
       }
     },
     onError: (error) => {
+      if (error.data?.httpStatus === 429) {
+        alert("Too many requests, please wait a bit before trying again")
+      }
       console.log(error)
-    }
+    },
   })
 
 
