@@ -45,6 +45,24 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters}) => {
       document.removeEventListener('keydown', handleEscape)
     }
   }, [])
+
+
+  const selectAll = () => {
+    const newFilters = {...filters}
+    Object.keys(newFilters).forEach((key) => {
+      newFilters[key as markerFilterType] = true
+    })
+    setFilters(newFilters)
+  }
+
+  const selectNone = () => {
+    const newFilters = {...filters}
+    Object.keys(newFilters).forEach((key) => {
+      newFilters[key as markerFilterType] = false
+    })
+    setFilters(newFilters)
+  }
+
   
   return (
     <div>
@@ -63,6 +81,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters}) => {
           <div className='text-gray-100 p-10 font-bold text-2xl flex flex-col gap-4 max-w-3xl'>
             <div>
               <h1>Filters</h1>
+              <span className='text-gray-200/50 text-sm font-thin'><button className='hover:text-gray-200' onClick={selectAll}>Select all</button> | <button className='hover:text-gray-200' onClick={selectNone}>Select none</button></span>
               <div className='flex flex-col mt-4 gap-1'>
                 {Object.entries(filters).map(([key, value]) => (
                   <div key={key} className={"flex items-center pl-4 border rounded border-gray-700 hover:border-gray-100" + (value ? " bg-gray-700/10 " : "")}
