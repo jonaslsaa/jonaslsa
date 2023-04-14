@@ -27,7 +27,7 @@ const defaultFromDate = new Date();
 defaultFromDate.setHours(defaultFromDate.getHours() - timeSelectOptions[defaultTimeSelectIndex].hours);
 
 const Home: NextPage = () => {
-  const [findMe, setFindMe] = useState(false)
+  const [findMe, setFindMe] = useState(0)
   const [markerData, setMarkerData] = useState<MarkerData[]>([])
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
@@ -67,7 +67,7 @@ const Home: NextPage = () => {
               <div className="flex gap-1 flex-col md:items-start md:gap-2 md:flex-row">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
                 <div className="flex justify-end">
-                  <button onClick={() => setFindMe(true)} className="bg-gray-800 max-w-[5rem] text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-gray-700" id="user-menu" aria-haspopup="true">
+                  <button onClick={() => setFindMe(findMe + 1)} className="bg-gray-800 max-w-[5rem] text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-gray-700" id="user-menu" aria-haspopup="true">
                     Find me
                   </button>
                 </div>

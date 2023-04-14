@@ -99,7 +99,7 @@ const dateToStringTime = (date: Date) => {
   return date.toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'})
 }
 
-function LocationMarker() {
+function LocationMarker({findMe}: {findMe: boolean}) {
   const [position, setPosition] = React.useState<L.LatLng | null>(null)
   const map = useMap()
 
@@ -109,7 +109,7 @@ function LocationMarker() {
       setPosition(e.latlng)
       map.flyTo(e.latlng, map.getZoom())
     })
-  }, [map])
+  }, [map, findMe])
 
   return position === null ? null : (
     <Marker position={position} icon={markerIconLocation} zIndexOffset={1000}>
@@ -163,7 +163,7 @@ const Map: FC<MapProps> = ({ markerData, findMe }) => {
             </Popup>
           </Marker>
         ))}
-        {findMe && <LocationMarker />}
+        {findMe && <LocationMarker findMe={findMe} />}
     </MapContainer>
   )
 }
