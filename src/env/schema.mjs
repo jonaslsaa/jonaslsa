@@ -23,6 +23,8 @@ export const serverSchema = z.object({
   DISCORD_CLIENT_SECRET: z.string(),
   OPENAI_API_KEY: z.string(),
   GOOGLE_PLACES_API_KEY: z.string(),
+  UPSTASH_REDIS_REST_URL: z.string(),
+  UPSTASH_REDIS_REST_TOKEN: z.string(),
 });
 
 /**

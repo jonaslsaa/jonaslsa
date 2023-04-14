@@ -4,9 +4,11 @@ import { type Session } from "next-auth";
 
 import { getServerAuthSession } from "../common/get-server-auth-session";
 import { prisma } from "../db/client";
+import type { NextApiRequest } from "next";
 
 type CreateContextOptions = {
   session: Session | null;
+  req?: NextApiRequest;
 };
 
 /** Use this helper for:
@@ -17,6 +19,7 @@ type CreateContextOptions = {
 export const createContextInner = async (opts: CreateContextOptions) => {
   return {
     session: opts.session,
+    req: opts.req,
     prisma,
   };
 };
@@ -33,6 +36,7 @@ export const createContext = async (opts: CreateNextContextOptions) => {
 
   return await createContextInner({
     session,
+    req,
   });
 };
 

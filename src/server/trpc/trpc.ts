@@ -2,6 +2,8 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
 import { type Context } from "./context";
+import type { NextApiRequest } from "next";
+import { createTRPCUpstashLimiter } from "@trpc-limiter/upstash";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -12,10 +14,30 @@ const t = initTRPC.context<Context>().create({
 
 export const router = t.router;
 
+const getFingerprint = (req: NextApiRequest | undefined) => {
+  if (!req) return "no-req"
+  const forwarded = req.headers["x-forwarded-for"]
+  const ip = forwarded
+    ? (typeof forwarded === "string" ? forwarded : forwarded[0])?.split(/, /)[0]
+    : req.socket.remoteAddress
+  return ip || "127.0.0.1"
+}
+
+export const rateLimiter = createTRPCUpstashLimiter({
+  root: t,
+  fingerprint: (ctx, _input) => getFingerprint(ctx.req),
+  windowMs: 10000,
+  message: (hitInfo) =>
+    `Too many requests, please try again later. ${Math.ceil(
+      (hitInfo.reset - Date.now()) / 1000
+    )}`,
+  max: 16,
+})
+
 /**
  * Unprotected procedure
  **/
-export const publicProcedure = t.procedure;
+export const publicProcedure = t.procedure.use(rateLimiter);
 
 /**
  * Reusable middleware to ensure
