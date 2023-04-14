@@ -43,7 +43,7 @@ const markerIconLowSpeeding = new L.Icon({ iconUrl: '/markers/marker-blue-speed.
 
 const markerToIcon = (marker: MarkerData) => {
   const markerType = marker.type.toLowerCase()
-  const isVehicle = markerType.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving|speed/) !== null
+  const isVehicle = markerType.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving/) !== null
   const isVehicleAccident = markerType.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
   const showTrafficAccident = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision/) !== null
   const isSpeeding = markerType.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
