@@ -27,7 +27,7 @@ export type MarkerData = {
 
 const markerIconLocation = new L.Icon({ iconUrl: '/markers/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
 
-type markerIconMapType = 'default' | 'traffic' | 'fire' | 'speed'
+type markerIconMapType = 'default' | 'traffic' | 'fire' | 'speed' | 'missing'
 type markerIconSeverityType = 'LOW' | 'MED' | 'HIGH'
 const markerIconMap: Record<markerIconMapType, Record<markerIconSeverityType, L.Icon>> = {
   default: {
@@ -49,22 +49,43 @@ const markerIconMap: Record<markerIconMapType, Record<markerIconSeverityType, L.
     HIGH: new L.Icon({ iconUrl: '/markers/marker-red-speed.png', iconSize: [22, 24], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
     MED: new L.Icon({ iconUrl: '/markers/marker-yellow-speed.png', iconSize: [22, 24], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
     LOW: new L.Icon({ iconUrl: '/markers/marker-blue-speed.png', iconSize: [22, 24], iconAnchor: [10, 10], popupAnchor: [0, -12] })
+  },
+  missing: {
+    HIGH: new L.Icon({ iconUrl: '/markers/marker-red-missing.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
+    MED: new L.Icon({ iconUrl: '/markers/marker-yellow-missing.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
+    LOW: new L.Icon({ iconUrl: '/markers/marker-blue-missing.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] })
   }
 }
 
-const markerToIcon = (marker: MarkerData) => {
+function markerToType(marker: MarkerData) {
+  const markerTypes: Record<markerIconMapType, boolean> = {
+    default: false,
+    traffic: false,
+    fire: false,
+    speed: false,
+    missing: false
+  }
   const markerType = marker.type.toLowerCase()
+
   const isVehicle = markerType.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving/) !== null
   const isVehicleAccident = markerType.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
 
-  const showTrafficAccident = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision/) !== null
-  const isSpeeding = markerType.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
-  const isFire = markerType.match(/fire|smoke|burning|burnt|burn/) !== null
+  markerTypes.traffic = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision/) !== null
+  markerTypes.speed = markerType.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
+  markerTypes.fire = markerType.match(/fire|smoke|burning|burnt|burn/) !== null
+  markerTypes.missing = markerType.match(/missing|lost|kidnapped|kidnap|kidnapping/) !== null
+
+  return markerTypes
+}
+
+const markerToIcon = (marker: MarkerData) => {
+  const markerTypes = markerToType(marker)
 
   let customIcon: markerIconMapType = 'default'
-  if (showTrafficAccident) customIcon = 'traffic'
-  if (isSpeeding) customIcon = 'speed'
-  if (isFire) customIcon = 'fire'
+  if (markerTypes.traffic) customIcon = 'traffic'
+  if (markerTypes.speed) customIcon = 'speed'
+  if (markerTypes.fire) customIcon = 'fire'
+  if (markerTypes.missing) customIcon = 'missing'
 
   if (marker.severity === "HIGH" || marker.severity === "MED" || marker.severity === "LOW") return markerIconMap[customIcon][marker.severity]
   console.error("Unknown severity: ", marker.severity)
