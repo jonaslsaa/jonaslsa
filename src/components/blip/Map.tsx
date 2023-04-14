@@ -5,6 +5,8 @@ import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet';
 
+import seedrandom from 'seedrandom';
+
 type MapProps = {
   markerData: MarkerData[],
   findMe: boolean
@@ -98,6 +100,26 @@ function LocationMarker() {
   )
 }
 
+const fixOverlappingMarkers = (markerData: MarkerData[]) => {
+  const usedLocations = new Set<string>()
+  const fixedMarkerData: MarkerData[] = []
+  for (const marker of markerData) {
+    const location = marker.lat + ',' + marker.lng
+    if (usedLocations.has(location)) {
+      // Move marker a bit to avoid overlapping
+      const myRandom = seedrandom(location) // Seed random with location to get same result every time
+      const randomAngle = 2 * Math.PI * myRandom()
+      const randomDistanceLat = 0.00045 * myRandom()
+      const randomDistanceLng = 0.00045 * myRandom()
+      marker.lat += Math.sin(randomAngle) * randomDistanceLat
+      marker.lng += Math.cos(randomAngle) * randomDistanceLng
+    }
+    usedLocations.add(location)
+    fixedMarkerData.push(marker)
+  }
+  return fixedMarkerData
+}
+
 const Map: FC<MapProps> = ({ markerData, findMe }) => {
   return (
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
@@ -105,7 +127,7 @@ const Map: FC<MapProps> = ({ markerData, findMe }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
         />
-        {markerData.map((marker) => (
+        {fixOverlappingMarkers(markerData).map((marker) => (
           <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerToIcon(marker)}>
             <Popup>
               <span style={{float: 'right', opacity: '65%', fontSize: '0.7rem', marginRight: '.1rem'}}>
