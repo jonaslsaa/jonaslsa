@@ -11,20 +11,34 @@ const openai = new OpenAIApi(new Configuration({ apiKey: env.OPENAI_API_KEY }));
 
 const AUTH_TOKEN = "perlerdarlig"; // temporary
 
-const usersToScrape = [
-  'politietsorost',
-  'oslopolitiops',
-  'politietost',
-  'politietsorvest',
-  'politiagder',
-  'politiinnlandet',
-  'politinordland',
-  'politifinnmark',
-  'PolitiTrondelag',
-  'PolitiMRpd',
-  'politivest',
-]
+const usersToScrape = {
+  police: [
+    'politietsorost',
+    'oslopolitiops',
+    'politietost',
+    'politietsorvest',
+    'politiagder',
+    'politiinnlandet',
+    'politinordland',
+    'politifinnmark',
+    'PolitiTrondelag',
+    'PolitiMRpd',
+    'politivest',
+  ],
+  fire: [
+    '110Vest',
+    '110Bodo',
+    '110Innlandet',
+    'sorost110',
+    'Oslo110sentral'
+  ],
+}
+
+
+export const usersToScrapeList = Object.values(usersToScrape).flat();
+
 const userToLocationBias = new Map([
+  // Police
   ['politietsorost',  'point:59.2736681, 10.40305903'],
   ['oslopolitiops',   'point:59.9138688, 10.75224541'],
   ['politietost',     'point:59.7155459, 10.83161895'],
@@ -35,7 +49,13 @@ const userToLocationBias = new Map([
   ['politifinnmark',  'point:69.7306470, 30.02526065'],
   ['PolitiTrondelag', 'point:63.4397447, 10.39951882'],
   ['PolitiMRpd',      'point:62.4767951, 6.143121702'],
-  ['politivest',      'point:60.3929948, 5.329137019']
+  ['politivest',      'point:60.3929948, 5.329137019'],
+  // Fire
+  ['110Vest',         'point:60.3929948, 5.329137019'],
+  ['110Bodo',         'point:67.2886571, 14.39942244'],
+  ['110Innlandet',    'point:60.7960557, 11.09422286'],
+  ['sorost110',       'point:59.2736681, 10.40305903'],
+  ['Oslo110sentral',  'point:59.9138688, 10.75224541'],
 ]);
 
 const startOfSearch = new Date();
@@ -66,7 +86,7 @@ const MAX_PAGES = 48;
 const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   const rettiwt = Rettiwt();
   const tweetService = rettiwt.tweets;
-  const tweetFilter = new TweetFilter({fromUsers: usersToScrape, startDate: startOfSearch.toISOString()});
+  const tweetFilter = new TweetFilter({fromUsers: usersToScrapeList, startDate: startOfSearch.toISOString()});
   console.log('Fetching tweets from ' + startOfSearch.toISOString());
   const tweets: MyTweet[] = [];
   let nextCursor: string | undefined = undefined;
@@ -102,7 +122,7 @@ const fetchHandleIdMap = async () => {
   const rettiwt = Rettiwt();
   const userService = rettiwt.users;
   const handleIdMap = new Map();
-  for (const username of usersToScrape) {
+  for (const username of usersToScrapeList) {
     const userDetail = await userService.getUserDetails(username);
     handleIdMap.set(userDetail.id, username);
   }
@@ -171,7 +191,7 @@ Only answer N/A when unknown. Only answer in following in this exact format:
 Location: PRIMARY, SECONDARY (no #)
 Type: SHORT INCIDENT TYPE (english)
 Severity: LOW/MED/HIGH (must be one of these)
-Summary: SHORT SUMMARY (just "N/A" when not applicable)`
+Summary: SHORT SUMMARY (english, just "N/A" when not applicable)`
   return await callCompletionModel(prompt);
 }
 
@@ -201,13 +221,13 @@ function parseCompletion(tweet: MyTweet, completion: string) {
     const location = lines[0].split(':')[1].trim();
     const time = tweet.createdAt.toISOString();
     const type = lines[1].split(':')[1].trim()
-    let severity = lines[2].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | null;
+    let severity = lines[2].split(':')[1].trim().toUpperCase() as 'LOW' | 'MED' | 'HIGH' | 'N/A' | null;
     if (severity !== 'LOW' && severity !== 'MED' && severity !== 'HIGH') {
-      console.log('Invalid severity - Setting to LOW:', severity);
+      if (severity !== 'N/A') console.log('Invalid severity - Setting to LOW:', severity);
       severity = 'LOW'; // Default
     }
     const summary = lines[3].split(':')[1].trim();
-    if (type === 'N/A' || summary === 'N/A' || location === 'N/A') {
+    if (type === 'N/A' || location === 'N/A') {
       console.log('Marking tweet as invalid:', tweet.id, "-", type, location);
       severity = null; // Mark as invalid
     }
@@ -260,6 +280,7 @@ const findCoordinatesFromText = async (tweetHandle: string, text: string) => {
 function cleanUpTweetLocationText(text: string) {
   text = text.replace('N/A', '').trim(); // Remove N/A
   text = text.replace('n/a', '').trim(); // Remove n/a
+  text = text.replace('(no #)', '').trim(); // Remove (no #)
   if (text.endsWith(',')) text = text.slice(0, -1); // Remove trailing comma
   if (text.startsWith(',')) text = text.slice(1); // Remove leading comma
   return text.trim();
