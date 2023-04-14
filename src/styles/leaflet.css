@@ -1,10 +1,10 @@
 :root {
-  --leaflet-tile-filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+  --leaflet-tile-filter: brightness(0.6) invert(1) contrast(4) hue-rotate(210deg) saturate(0.3) brightness(0.4);
 }
 
 
 .leaflet-tile {
-    filter: var(--leaflet-tile-filter, none);
+    filter: var(--leaflet-tile-filter, none) !important;
 }
 
 .leaflet-container {
