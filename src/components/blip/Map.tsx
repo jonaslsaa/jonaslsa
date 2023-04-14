@@ -9,7 +9,8 @@ import seedrandom from 'seedrandom';
 
 type MapProps = {
   markerData: MarkerData[],
-  findMe: number
+  findMe: number,
+  filters : Record<markerFilterType, boolean>
 }
 
 export type MarkerData = {
@@ -27,9 +28,10 @@ export type MarkerData = {
 
 const markerIconLocation = new L.Icon({ iconUrl: '/markers/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
 
-type markerIconMapType = 'default' | 'traffic' | 'fire' | 'speed' | 'missing'
-type markerIconSeverityType = 'LOW' | 'MED' | 'HIGH'
-const markerIconMap: Record<markerIconMapType, Record<markerIconSeverityType, L.Icon>> = {
+export type markerFilterType = 'default' | 'traffic' | 'fire' | 'speed' | 'missing'
+
+export type markerIconSeverityType = 'LOW' | 'MED' | 'HIGH'
+const markerIconMap: Record<markerFilterType, Record<markerIconSeverityType, L.Icon>> = {
   default: {
     HIGH: new L.Icon({ iconUrl: '/markers/marker-red.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
     MED: new L.Icon({ iconUrl: '/markers/marker-yellow.png', iconSize: [22, 22], iconAnchor: [10, 10], popupAnchor: [0, -12] }),
@@ -57,35 +59,38 @@ const markerIconMap: Record<markerIconMapType, Record<markerIconSeverityType, L.
   }
 }
 
-function markerToType(marker: MarkerData) {
-  const markerTypes: Record<markerIconMapType, boolean> = {
+function markerToFilterType(marker: MarkerData) {
+  const markerFilterTypes: Record<markerFilterType, boolean> = {
     default: false,
     traffic: false,
     fire: false,
     speed: false,
     missing: false
   }
-  const markerType = marker.type.toLowerCase()
+  const markerTypeText = marker.type.toLowerCase()
 
-  const isVehicle = markerType.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving/) !== null
-  const isVehicleAccident = markerType.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
+  const isVehicle = markerTypeText.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving/) !== null
+  const isVehicleAccident = markerTypeText.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
 
-  markerTypes.traffic = (isVehicle && isVehicleAccident) || markerType.match(/crash|collision/) !== null
-  markerTypes.speed = markerType.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
-  markerTypes.fire = markerType.match(/fire|smoke|burning|burnt|burn/) !== null
-  markerTypes.missing = markerType.match(/missing|lost|kidnapped|kidnap|kidnapping/) !== null
+  markerFilterTypes.traffic = (isVehicle && isVehicleAccident) || markerTypeText.match(/crash|collision/) !== null
+  markerFilterTypes.speed = markerTypeText.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
+  markerFilterTypes.fire = markerTypeText.match(/fire|smoke|burning|burnt|burn/) !== null
+  markerFilterTypes.missing = markerTypeText.match(/missing|lost|kidnapped|kidnap|kidnapping/) !== null
 
-  return markerTypes
+  // if no filter is set, set default to true
+  if (!Object.values(markerFilterTypes).some((value) => value)) markerFilterTypes.default = true
+
+  return markerFilterTypes
 }
 
 const markerToIcon = (marker: MarkerData) => {
-  const markerTypes = markerToType(marker)
+  const filterTypes = markerToFilterType(marker)
 
-  let customIcon: markerIconMapType = 'default'
-  if (markerTypes.traffic) customIcon = 'traffic'
-  if (markerTypes.speed) customIcon = 'speed'
-  if (markerTypes.fire) customIcon = 'fire'
-  if (markerTypes.missing) customIcon = 'missing'
+  let customIcon: markerFilterType = 'default'
+  if (filterTypes.traffic) customIcon = 'traffic'
+  if (filterTypes.speed) customIcon = 'speed'
+  if (filterTypes.fire) customIcon = 'fire'
+  if (filterTypes.missing) customIcon = 'missing'
 
   if (marker.severity === "HIGH" || marker.severity === "MED" || marker.severity === "LOW") return markerIconMap[customIcon][marker.severity]
   console.error("Unknown severity: ", marker.severity)
@@ -138,14 +143,28 @@ const fixOverlappingMarkers = (markerData: MarkerData[]) => {
   return fixedMarkerData
 }
 
-const Map: FC<MapProps> = ({ markerData, findMe }) => {
+const filterMarkers = (markerData: MarkerData[], filtersMap: Record<markerFilterType, boolean>) => {
+  const filteredMarkerData: MarkerData[] = []
+  for (const marker of markerData) {
+    const filterType = markerToFilterType(marker)
+    for (const filterTypeKey in filterType) {
+      if (filterType[filterTypeKey as markerFilterType] && filtersMap[filterTypeKey as markerFilterType]) {
+        filteredMarkerData.push(marker)
+        break
+      }
+    }
+  }
+  return filteredMarkerData
+}
+
+const Map: FC<MapProps> = ({ markerData, findMe, filters }) => {
   return (
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {fixOverlappingMarkers(markerData).map((marker) => (
+        {fixOverlappingMarkers(filterMarkers(markerData, filters)).map((marker) => (
           <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerToIcon(marker)}>
             <Popup>
               <span style={{float: 'right', opacity: '65%', fontSize: '0.7rem', marginRight: '.1rem'}}>

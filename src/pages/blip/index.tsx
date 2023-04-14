@@ -5,9 +5,11 @@ import { useRef, useState } from "react";
 import React from "react";
 import { trpc } from "../../utils/trpc";
 
-import type { MarkerData } from "../../components/blip/Map";
+import type { MarkerData, markerFilterType } from "../../components/blip/Map";
 import Link from "next/link";
 import TimeSelect from "../../components/blip/TimeSelect";
+import DropdownPanel from "../../components/blip/DropdownPanel";
+import { boolean } from "zod";
 
 const Map = dynamic(() => import('../../components/blip/Map'), { ssr: false })
 
@@ -26,10 +28,19 @@ const defaultTimeSelectIndex = 5;
 const defaultFromDate = new Date();
 defaultFromDate.setHours(defaultFromDate.getHours() - timeSelectOptions[defaultTimeSelectIndex].hours);
 
+const defaultFilters: Record<markerFilterType, boolean> = {
+  default: true,
+  traffic: true,
+  fire: true,
+  speed: true,
+  missing: true,
+}
+
 const Home: NextPage = () => {
   const [findMe, setFindMe] = useState(0)
   const [markerData, setMarkerData] = useState<MarkerData[]>([])
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
+  const [filters, setFilters] = useState(defaultFilters)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
     onSuccess: (data) => {
       if (data) {
@@ -64,8 +75,9 @@ const Home: NextPage = () => {
         <nav className="fixed top-0 left-0 w-full z-[2000] pt-1 pr-1 md:pl-10">
           <div className="mx-auto md:pl-3">
             <div className="flex justify-between h-12">
-              <div className="flex-shrink-0 flex items-center w-1 md:w-auto">
-                <span className="text-md text-gray-200 hidden md:block"><b>Blip</b> - Real-time incident mapping</span>
+              <div className="mt-2">
+                <span className="text-md text-gray-200 hidden md:block mb-1"><b>Blip</b> - Real-time incident mapping</span>
+                <DropdownPanel filters={filters} setFilters={setFilters} />
               </div>
               <div className="flex gap-1 flex-col md:items-start md:gap-2 md:flex-row">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
@@ -78,7 +90,7 @@ const Home: NextPage = () => {
             </div>
           </div>
         </nav>
-        <Map markerData={markerData} findMe={findMe} />
+        <Map markerData={markerData} findMe={findMe} filters={filters} />
         <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
         </div>
