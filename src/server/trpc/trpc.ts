@@ -20,7 +20,9 @@ const getFingerprint = (req: NextApiRequest | undefined) => {
   const ip = forwarded
     ? (typeof forwarded === "string" ? forwarded : forwarded[0])?.split(/, /)[0]
     : req.socket.remoteAddress
-  return ip || "127.0.0.1"
+  const localhost = ip?.replace(/^.*:/, "")
+  if (!localhost || localhost === "1") return "127.0.0.1" // is localhost
+  return ip || "no-ip_" + Math.random().toString(36).substr(2, 6)
 }
 
 export const rateLimiter = createTRPCUpstashLimiter({
