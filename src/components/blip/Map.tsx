@@ -9,7 +9,7 @@ import seedrandom from 'seedrandom';
 
 type MapProps = {
   markerData: MarkerData[],
-  findMe: boolean
+  findMe: number
 }
 
 export type MarkerData = {
@@ -99,7 +99,7 @@ const dateToStringTime = (date: Date) => {
   return date.toLocaleTimeString('no-NO', {hour: '2-digit', minute:'2-digit'})
 }
 
-function LocationMarker({findMe}: {findMe: boolean}) {
+function LocationMarker(findMe: {findMe: number}) {
   const [position, setPosition] = React.useState<L.LatLng | null>(null)
   const map = useMap()
 
