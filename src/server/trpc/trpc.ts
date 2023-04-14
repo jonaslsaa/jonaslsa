@@ -27,7 +27,7 @@ const getFingerprint = (req: NextApiRequest | undefined) => {
 
 export const rateLimiter = createTRPCUpstashLimiter({
   root: t,
-  fingerprint: (ctx, _input) => getFingerprint(ctx.req),
+  fingerprint: (ctx) => getFingerprint(ctx.req),
   windowMs: 10000,
   message: (hitInfo) =>
     `Too many requests, please try again later. ${Math.ceil(
