@@ -92,7 +92,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <div className='flex flex-col items-center h-full'>
+        <div className='flex flex-col items-center h-full overflow-y-scroll'>
           <div className='text-gray-100 p-10 font-bold text-2xl flex flex-col gap-4 max-w-3xl'>
             <div>
               <h1>Filters</h1>
