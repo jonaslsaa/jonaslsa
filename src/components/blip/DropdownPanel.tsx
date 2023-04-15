@@ -115,7 +115,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
         </button>
       </div>
       <div className={"absolute top-0 left-0 w-full h-screen transition-all bg-gray-900/95" + (isOpen ? " opacity-100 pointer-events-auto" : " opacity-0 pointer-events-none")}>
-        <button onClick={() => setIsOpen(false)} className='absolute top-0 right-0 mt-4 mr-4'>
+        <button onClick={() => setIsOpen(false)} className='absolute top-0 right-0 mt-4 mr-8'>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 stroke-white">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
