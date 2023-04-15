@@ -175,6 +175,14 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
                 The data is then displayed on a map using <Link href="https://leafletjs.com/">Leaflet</Link>.
                 <br />
                 Tweets are scraped every 30 minutes.
+                <br />
+                Built using the <Link target='_blank' className='text-violet-400 font-semibold' href="https://create.t3.gg/">T3 Stack</Link>.
+              </p>
+            </div>
+            <div className='text-sm mt-2'>
+              <h1 className='text-1xl'>Contact</h1>
+              <p className='text-gray-300 font-thin'>
+                <Link target='_blank' className='hover:text-blue-300' href="https://twitter.com/TheVoxxx">Twitter</Link> | <Link className='hover:text-blue-300' href="emailto:jonaslsa@uio.no">Email</Link>
               </p>
             </div>
           </div>

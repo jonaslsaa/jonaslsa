@@ -27,7 +27,7 @@ const Home: NextPage = () => {
             <ProjectLink link="paste/" title="Pastebin" />
 
             <hr className="border-gray-700 my-2" />
-            <ProjectLink link="http://tracker.jonaslsa.com" title="Tracker" />
+            <ProjectLink newTab={true} link="http://tracker.jonaslsa.com" title="Tracker" />
             <ProjectLink link="/blip/" title="Blip - Real-time incident mapping" />
             {/*<ProjectLink link="https://www.multure.us/" title="Multure - AI managed CMS" />*/}
          </div>
