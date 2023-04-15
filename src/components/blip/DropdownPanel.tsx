@@ -68,6 +68,31 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
     setFilters(newFilters)
   }
 
+  const selectAllAccounts = () => {
+    const newFilters = {...twitterHandleFilters}
+    Object.keys(newFilters).forEach((key) => {
+      const newHandleFilters = {...newFilters[key as markerFilterType]}
+      Object.keys(newHandleFilters).forEach((handleKey) => {
+        newHandleFilters[handleKey as string] = true
+      })
+      newFilters[key as markerFilterType] = newHandleFilters
+    })
+    setTwitterHandleFilters(newFilters)
+  }
+
+  const selectNoneAccounts = () => {
+    const newFilters = {...twitterHandleFilters}
+    Object.keys(newFilters).forEach((key) => {
+      const newHandleFilters = {...newFilters[key as markerFilterType]}
+      Object.keys(newHandleFilters).forEach((handleKey) => {
+        newHandleFilters[handleKey as string] = false
+      })
+      newFilters[key as markerFilterType] = newHandleFilters
+    })
+    setTwitterHandleFilters(newFilters)
+  }
+  
+
   const LowIconsUri: Record<markerFilterType, string> = {
     default: '/markers/marker-blue.png',
     traffic: '/markers/marker-blue-traffic.png',
@@ -98,7 +123,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
         <div className='flex flex-col items-center h-full overflow-y-scroll'>
           <div className='text-gray-100 p-10 font-bold text-2xl flex flex-col gap-4 max-w-3xl'>
             <div>
-              <h1>Filters</h1>
+              <h1>Category</h1>
               <span className='text-gray-200/50 text-sm font-thin'><button className='hover:text-gray-200' onClick={selectAll}>Select all</button> | <button className='hover:text-gray-200' onClick={selectNone}>Select none</button></span>
               <div className='flex flex-col mt-4 gap-1'>
                 {Object.entries(filters).map(([key, value]) => (
@@ -122,24 +147,26 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
                 ))}
               </div>
               <h2 className='mt-4'>Twitter accounts</h2>
-              <div className='flex flex-col mt-4 gap-1'>
+              <span className='text-gray-200/50 text-sm font-thin'><button className='hover:text-gray-200' onClick={selectAllAccounts}>Select all</button> | <button className='hover:text-gray-200' onClick={selectNoneAccounts}>Select none</button></span>
+              <div className='flex flex-row flex-wrap gap-4 w-full'>
                 {Object.entries(twitterHandleFilters).map(([key, value]) => (
                   <div key={key}>
-                    <h3>{capitalizeString(key)}</h3>
-                    {Object.entries(value).map(([key2, value]) => (
-                      <div key={key2} className={"flex items-center pl-4 border rounded border-gray-700 hover:border-gray-100" + (value ? " bg-gray-700/10 " : "")}
-                        onClick={() => setTwitterHandleFilters({...twitterHandleFilters, [key]: {...twitterHandleFilters[key], [key2]: !value}})}>
-                        <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" readOnly checked={value}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
-                        <label className="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">{key2}</label>
-                      </div>
-                    ))}
+                    <h3 className='text-2xl text-gray-200 font-thin'>{capitalizeString(key)}</h3>
+                    <div className='flex flex-col gap-1 max-h-sm'>
+                      {Object.entries(value).map(([key2, value]) => (
+                        <div key={key2} className={"flex items-center pl-4 border rounded border-gray-700 hover:border-gray-100" + (value ? " bg-gray-700/10 " : "")}
+                          onClick={() => setTwitterHandleFilters({...twitterHandleFilters, [key]: {...twitterHandleFilters[key], [key2]: !value}})}>
+                          <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" readOnly checked={value}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
+                          <label className="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 pl-1 pr-3">@{key2}</label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-            <br />
-            <div className='text-sm'>
+            <div className='text-sm mt-2'>
               <h1 className='text-2xl'>How it works</h1>
               <p className='text-gray-300'>
                 This project collects data from Norwegian police twitters, parses them using <Link href="https://www.openai.com/">OpenAI&apos;s ChatGPT</Link> and displays the results on a map of Norway. Severity is also decided by the model.
