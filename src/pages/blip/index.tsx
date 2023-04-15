@@ -9,7 +9,7 @@ import type { MarkerData, markerFilterType, markerSeverityType } from "../../com
 import Link from "next/link";
 import TimeSelect from "../../components/blip/TimeSelect";
 import DropdownPanel from "../../components/blip/DropdownPanel";
-import { boolean } from "zod";
+import { usersToScrape } from "../../server/common/usersToScrape";
 
 const Map = dynamic(() => import('../../components/blip/Map'), { ssr: false })
 
@@ -42,12 +42,16 @@ const defaultSeverityFilters: Record<markerSeverityType, boolean> = {
   LOW: true,
 }
 
+export type TwitterHandleFilters = Record<string, Record<string, boolean>>
+const defaultTwitterHandleFilters: TwitterHandleFilters = Object.fromEntries(Object.entries(usersToScrape).map(([key, value]) => [key, Object.fromEntries(Object.entries(value).map(([key2, value2]) => [value2, true]))]))
+
 const Home: NextPage = () => {
   const [findMe, setFindMe] = useState(0)
   const [markerData, setMarkerData] = useState<MarkerData[]>([])
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
   const [filters, setFilters] = useState(defaultFilters)
   const [severityFilters, setSeverityFilters] = useState(defaultSeverityFilters)
+  const [twitterHandleFilters, setTwitterHandleFilters] = useState(defaultTwitterHandleFilters)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
     onSuccess: (data) => {
       if (data) {
@@ -84,7 +88,7 @@ const Home: NextPage = () => {
             <div className="flex justify-between h-12">
               <div className="mt-2">
                 <span className="text-md text-gray-200 hidden md:block mb-1"><b>Blip</b> - Real-time incident mapping</span>
-                <DropdownPanel filters={filters} setFilters={setFilters} severityFilters={severityFilters} setSeverityFilters={setSeverityFilters} />
+                <DropdownPanel filters={filters} setFilters={setFilters} severityFilters={severityFilters} setSeverityFilters={setSeverityFilters} twitterHandleFilters={twitterHandleFilters} setTwitterHandleFilters={setTwitterHandleFilters} />
               </div>
               <div className="flex gap-1 flex-col md:items-start md:gap-2 md:flex-row">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
@@ -97,7 +101,7 @@ const Home: NextPage = () => {
             </div>
           </div>
         </nav>
-        <Map markerData={markerData} findMe={findMe} filters={filters} severityFilters={severityFilters} />
+        <Map markerData={markerData} findMe={findMe} filters={filters} severityFilters={severityFilters} twitterHandleFilters={twitterHandleFilters} />
         <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
         </div>
