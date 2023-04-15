@@ -73,7 +73,7 @@ function markerToFilterType(marker: MarkerData) {
   const markerTypeText = marker.type.toLowerCase()
 
   const isVehicle = markerTypeText.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving/) !== null
-  const isVehicleAccident = markerTypeText.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license/) !== null
+  const isVehicleAccident = markerTypeText.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license|dangerous/) !== null
 
   markerFilterTypes.traffic = (isVehicle && isVehicleAccident) || markerTypeText.match(/crash|collision/) !== null
   markerFilterTypes.speed = markerTypeText.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
