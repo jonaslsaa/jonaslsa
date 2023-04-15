@@ -168,7 +168,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
             </div>
             <div className='text-sm mt-2'>
               <h1 className='text-2xl'>How it works</h1>
-              <p className='text-gray-300'>
+              <p className='text-gray-300 font-thin'>
                 This project collects data from Norwegian police twitters, parses them using <Link href="https://www.openai.com/">OpenAI&apos;s ChatGPT</Link> and displays the results on a map of Norway. Severity is also decided by the model.
                 <br />
                 Coordinates are extracted from the tweets and ran thorugh Google&apos;s Text Search API to get the exact location of the crime.
