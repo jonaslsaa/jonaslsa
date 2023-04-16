@@ -37,7 +37,7 @@ const userToLocationBias = new Map([
 ]);
 
 const startOfSearch = new Date();
-startOfSearch.setDate(startOfSearch.getDate() - 1);
+startOfSearch.setHours(startOfSearch.getHours() - 12);
 
 type MyTweet = {
   id: string;
@@ -95,6 +95,8 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
     }
   } while (nextCursor && i < MAX_PAGES); // Max amount of pages to fetch
   console.log("Pages fetched: " + i);
+  // Order newest first
+  tweets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return tweets;
 };
 
