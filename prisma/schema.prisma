@@ -87,6 +87,7 @@ model Incident {
 
   fromTwitterHandle String
   tweetId           String   @unique
+  updates           Int      @default(0)
   content           String   @db.MediumText
 
   lat               Float
@@ -97,4 +98,6 @@ model Incident {
   type              String
   severity          String?
   summary           String   @db.MediumText
+
+  @@index([time, severity], name: "time_severity")
 }

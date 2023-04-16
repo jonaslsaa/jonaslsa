@@ -42,6 +42,7 @@ startOfSearch.setHours(startOfSearch.getHours() - 12);
 type MyTweet = {
   id: string;
   createdAt: Date;
+  lastUpdatedAt: Date;
   tweetHandle: string;
   content: string;
   replyTo: string | null;
@@ -82,6 +83,7 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
       return {
         id: tweet.id,
         createdAt: new Date(tweet.createdAt),
+        lastUpdatedAt: new Date(tweet.createdAt),
         tweetHandle: usernameMap.get(tweet.tweetBy) ?? 'unknown',
         content: tweet.fullText,
         replyTo: tweet.replyTo,
@@ -95,8 +97,6 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
     }
   } while (nextCursor && i < MAX_PAGES); // Max amount of pages to fetch
   console.log("Pages fetched: " + i);
-  // Order newest first
-  tweets.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return tweets;
 };
 
@@ -128,15 +128,19 @@ const filterToNewTweets = async (tweets: MyTweet[]) => {
 }
 
 const mergeReplyToTweets = async (tweets: MyTweet[]) => {
-  const parentTweets = tweets.filter(tweet => !tweet.replyTo);
+  const orderedTweets = tweets.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const parentTweets = orderedTweets.filter(tweet => !tweet.replyTo);
   const tweetsMap = new Map(parentTweets.map(tweet => [tweet.id, tweet]));
-  for (const tweet of tweets) {
+  for (const tweet of orderedTweets) {
     if (tweet.replyTo) {
       const parentTweet = tweetsMap.get(tweet.replyTo);
       if (parentTweet) {
         parentTweet.content += `
 Update: ${tweet.content}`;
         parentTweet.replies++;
+        if (tweet.lastUpdatedAt.getTime() > parentTweet.lastUpdatedAt.getTime()) {
+          parentTweet.lastUpdatedAt = tweet.lastUpdatedAt;
+        }
       }
     }
   }
@@ -335,7 +339,8 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
       time: tweet.time,
       type: tweet.type,
       severity: tweet.severity,
-      summary: tweet.summary
+      summary: tweet.summary,
+      updates: tweet.replies,
     })),
     skipDuplicates: true
   });
