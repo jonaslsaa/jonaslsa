@@ -27,6 +27,7 @@ const userToLocationBias = new Map([
   ['PolitiTrondelag', 'point:63.4397447, 10.39951882'],
   ['PolitiMRpd',      'point:62.4767951, 6.143121702'],
   ['politivest',      'point:60.3929948, 5.329137019'],
+  ['polititroms',     'point:69.6598271, 18.96782164'],
   // Fire
   ['110Vest',         'point:60.3929948, 5.329137019'],
   ['110Bodo',         'point:67.2886571, 14.39942244'],
@@ -36,7 +37,7 @@ const userToLocationBias = new Map([
 ]);
 
 const startOfSearch = new Date();
-startOfSearch.setDate(startOfSearch.getDate() - 1);
+startOfSearch.setDate(startOfSearch.getDate() - 7);
 
 type MyTweet = {
   id: string;

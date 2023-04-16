@@ -11,6 +11,7 @@ export const usersToScrape = {
     'PolitiTrondelag',
     'PolitiMRpd',
     'politivest',
+    'polititroms'
   ],
   fire: [
     '110Vest',
