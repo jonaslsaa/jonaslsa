@@ -185,11 +185,11 @@ const Map: FC<MapProps> = ({ markerData, findMe, filters, severityFilters, twitt
             <br />
             <b>Summary:</b> {marker.summary}
             <br />
-            <div className='flex flex-row justify-between' style={{ opacity: '50%', fontSize: '0.7rem' }}>
+            <div className='flex flex-row gap-4 justify-between mt-1' style={{ opacity: '50%', fontSize: '0.7rem' }}>
               <a rel="noreferrer" target='_blank' href={marker.tweetUrl}>
                 @{marker.tweetHandle}
               </a>
-              <span>
+              <span className='whitespace-nowrap'>
                 {marker.updates > 0 && <span>Updated at {dateToStringTime(new Date(marker.tweetUpdatedAt))}</span>}
               </span>
             </div>
