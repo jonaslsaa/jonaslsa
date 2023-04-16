@@ -37,7 +37,7 @@ const userToLocationBias = new Map([
 ]);
 
 const startOfSearch = new Date();
-startOfSearch.setHours(startOfSearch.getHours() - 2);
+startOfSearch.setHours(startOfSearch.getHours() - 12);
 
 type MyTweet = {
   id: string;
