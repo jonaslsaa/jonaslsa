@@ -37,7 +37,7 @@ const userToLocationBias = new Map([
 ]);
 
 const startOfSearch = new Date();
-startOfSearch.setDate(startOfSearch.getDate() - 7);
+startOfSearch.setDate(startOfSearch.getDate() - 1);
 
 type MyTweet = {
   id: string;
@@ -45,6 +45,7 @@ type MyTweet = {
   tweetHandle: string;
   content: string;
   replyTo: string | null;
+  replies: number; // Number of replies to this tweet (parent tweets only)
 };
 
 type CategorizedTweet = MyTweet & {
@@ -83,7 +84,8 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
         createdAt: new Date(tweet.createdAt),
         tweetHandle: usernameMap.get(tweet.tweetBy) ?? 'unknown',
         content: tweet.fullText,
-        replyTo: tweet.replyTo
+        replyTo: tweet.replyTo,
+        replies: 0
       }
     }));
     nextCursor = tweetBatch.next.value;
@@ -131,7 +133,8 @@ const mergeReplyToTweets = async (tweets: MyTweet[]) => {
       const parentTweet = tweetsMap.get(tweet.replyTo);
       if (parentTweet) {
         parentTweet.content += `
-${tweet.content}`;
+Update: ${tweet.content}`;
+        parentTweet.replies++;
       }
     }
   }
