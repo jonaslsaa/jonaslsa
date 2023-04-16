@@ -26,7 +26,9 @@ export type MarkerData = {
   time: Date | string
   type: string
   severity: ("LOW" | "MED" | "HIGH") | null
-  summary: string
+  summary: string,
+  updates: number,
+  tweetUpdatedAt: Date | string,
 }
 
 const markerIconLocation = new L.Icon({ iconUrl: '/markers/location-marker.png', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -10] })
@@ -183,9 +185,14 @@ const Map: FC<MapProps> = ({ markerData, findMe, filters, severityFilters, twitt
             <br />
             <b>Summary:</b> {marker.summary}
             <br />
-            <a rel="noreferrer" target='_blank' href={marker.tweetUrl} style={{ opacity: '50%', fontSize: '0.7rem', marginRight: '.1rem' }}>
-              @{marker.tweetHandle}
-            </a>
+            <div className='flex flex-row justify-between' style={{ opacity: '50%', fontSize: '0.7rem' }}>
+              <a rel="noreferrer" target='_blank' href={marker.tweetUrl}>
+                @{marker.tweetHandle}
+              </a>
+              <span>
+                {marker.updates > 0 && <span>Updated at {dateToStringTime(new Date(marker.tweetUpdatedAt))}</span>}
+              </span>
+            </div>
           </Popup>
         </Marker>
       ))}

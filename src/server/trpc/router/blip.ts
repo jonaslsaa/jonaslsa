@@ -32,7 +32,9 @@ export const blipRouter = router({
           time: incident.time.toISOString(),
           type: incident.type,
           severity: incident.severity as ("LOW" | "MED" | "HIGH") | null,
-          summary: incident.summary
+          summary: incident.summary,
+          updates: incident.updates,
+          tweetUpdatedAt: incident.tweetUpdatedAt.toISOString(),
         }
       });
       return {fromDate, markerData}
