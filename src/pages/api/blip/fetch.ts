@@ -37,7 +37,7 @@ const userToLocationBias = new Map([
 ]);
 
 const startOfSearch = new Date();
-startOfSearch.setHours(startOfSearch.getHours() - 12);
+startOfSearch.setHours(startOfSearch.getHours() - 2);
 
 type MyTweet = {
   id: string;
@@ -119,12 +119,23 @@ const filterToNewTweets = async (tweets: MyTweet[]) => {
       }
     },
     select: {
-      tweetId: true
+      tweetId: true,
+      updates: true
     }
   });
-  const existingTweetsIds = existingIncidents.map(incident => incident.tweetId);
-  const news = tweets.filter(tweet => !existingTweetsIds.includes(tweet.id));
-  return news;
+  // Filter tweets which already exist in the database with the same number of replies/update count
+  const newTweets: MyTweet[] = [];
+  for (const tweet of tweets) {
+    const existingTweet = existingIncidents.find(existingTweet => existingTweet.tweetId === tweet.id);
+    // If we don't have this tweet in the database, it's new
+    // If we have this tweet in the database, but the number of replies has changed, it's new (there has been an update)
+    if (!existingTweet) {
+      newTweets.push(tweet);
+    } else if (existingTweet.updates !== tweet.replies) {
+      newTweets.push(tweet); // Parent tweet that needs to be updated
+    }
+  }
+  return newTweets;
 }
 
 const mergeReplyToTweets = async (tweets: MyTweet[]) => {
@@ -318,39 +329,54 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const tweets = await getTodaysTweets(usernameMap);
   console.log(`Got ${tweets.length} tweets, took ${Date.now() - startTimer}ms`);
-  const newTweets = await filterToNewTweets(tweets);
-  console.log(`Got ${newTweets.length} new tweets`);
-  const parentTweets = await mergeReplyToTweets(newTweets);
+  const parentTweets = await mergeReplyToTweets(tweets);
   console.log(`Got ${parentTweets.length} parent tweets`);
-  const { categorizedTweets, tokens } = await catogorizeTweets(parentTweets);
+  const newTweets = await filterToNewTweets(parentTweets);
+  console.log(`Got ${newTweets.length} tweets to process (new or updated)`);
+  const { categorizedTweets, tokens } = await catogorizeTweets(newTweets);
   console.log(`Got ${categorizedTweets.length} categorized tweets`);
   const localizedTweets = await localizeTweets(categorizedTweets);
   console.log(`Got ${localizedTweets.length} localized tweets`);
 
-  // Save to database
-  const saved = await prisma.incident.createMany({
-    data: localizedTweets.map(tweet => ({
-      fromTwitterHandle: tweet.tweetHandle,
-      tweetId: tweet.id,
-      content: tweet.content,
-      lat: tweet.lat,
-      lng: tweet.lng,
-      location: tweet.location,
-      time: tweet.time,
-      type: tweet.type,
-      severity: tweet.severity,
-      summary: tweet.summary,
-      updates: tweet.replies,
-      tweetUpdatedAt: tweet.lastUpdatedAt
-    })),
-    skipDuplicates: true
-  });
-
-  console.log(`Saved ${saved.count} new tweets`);
+  // Create or update incidents (based on unique tweetId), upsertMany is not yet supported by Prisma so we have to do it manually with transactions
+  const newOrUpdated = await prisma.$transaction(
+    localizedTweets.map(tweet => prisma.incident.upsert({
+      where: { tweetId: tweet.id },
+      create: {
+        fromTwitterHandle: tweet.tweetHandle,
+        tweetId: tweet.id,
+        content: tweet.content,
+        lat: tweet.lat,
+        lng: tweet.lng,
+        location: tweet.location,
+        time: tweet.time,
+        type: tweet.type,
+        severity: tweet.severity,
+        summary: tweet.summary,
+        updates: tweet.replies,
+        tweetUpdatedAt: tweet.lastUpdatedAt
+      },
+      update: {
+        fromTwitterHandle: tweet.tweetHandle,
+        content: tweet.content,
+        lat: tweet.lat,
+        lng: tweet.lng,
+        location: tweet.location,
+        time: tweet.time,
+        type: tweet.type,
+        severity: tweet.severity,
+        summary: tweet.summary,
+        updates: tweet.replies,
+        tweetUpdatedAt: tweet.lastUpdatedAt
+      }
+    }))
+  );
+  const savedCount = newOrUpdated.length;
+  console.log(`Saved ${savedCount} incidents`);
 
   const tookTime = Date.now() - startTimer;
   
-  res.status(200).json({ tweets: localizedTweets, saved: saved.count, tookTime, tokens });
+  res.status(200).json({ tweets: localizedTweets, saved: savedCount, tookTime, tokens });
 };
 
 export default GetNewTweets;
