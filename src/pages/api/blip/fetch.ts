@@ -341,6 +341,7 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
       severity: tweet.severity,
       summary: tweet.summary,
       updates: tweet.replies,
+      tweetUpdatedAt: tweet.lastUpdatedAt
     })),
     skipDuplicates: true
   });
