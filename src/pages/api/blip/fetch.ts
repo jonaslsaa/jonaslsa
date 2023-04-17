@@ -34,6 +34,8 @@ const userToLocationBias = new Map([
   ['110Innlandet',    'point:60.7960557, 11.09422286'],
   ['sorost110',       'point:59.2736681, 10.40305903'],
   ['Oslo110sentral',  'point:59.9138688, 10.75224541'],
+  ['110sorvest',      'point:58.9636489, 5.735737659'],
+  ['110agder',        'point:58.1471410, 7.998652932'],
 ]);
 
 const startOfSearch = new Date();

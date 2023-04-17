@@ -18,6 +18,8 @@ export const usersToScrape = {
     '110Bodo',
     '110Innlandet',
     'sorost110',
-    'Oslo110sentral'
+    'Oslo110sentral',
+    '110sorvest',
+    '110agder',
   ],
 };
