@@ -52,6 +52,7 @@ const Home: NextPage = () => {
   const [filters, setFilters] = useState(defaultFilters)
   const [severityFilters, setSeverityFilters] = useState(defaultSeverityFilters)
   const [twitterHandleFilters, setTwitterHandleFilters] = useState(defaultTwitterHandleFilters)
+  const [showWarningBanner, setShowWarningBanner] = useState(true)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
     onSuccess: (data) => {
       if (data) {
@@ -104,6 +105,11 @@ const Home: NextPage = () => {
         <Map markerData={markerData} findMe={findMe} filters={filters} severityFilters={severityFilters} twitterHandleFilters={twitterHandleFilters} />
         <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
+          {showWarningBanner && (<>
+            <span className=" mx-4">-</span>
+            <span>We are experiencing some issues with the Twitter API, so real-time updates are not working as frequently as they should.</span>
+            <button onClick={() => setShowWarningBanner(false)} className="ml-2 text-gray-200">X</button>
+          </>)}
         </div>
       </main>
     </>
