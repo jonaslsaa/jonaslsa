@@ -81,9 +81,9 @@ model Pastebin {
 }
 
 model Incident {
-  id                String   @id @default(cuid())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   fromTwitterHandle String
   tweetId           String   @unique
@@ -91,14 +91,14 @@ model Incident {
   tweetUpdatedAt    DateTime @default(now())
   content           String   @db.MediumText
 
-  lat               Float
-  lng               Float
-   
-  location          String
-  time              DateTime @default(now())
-  type              String
-  severity          String?
-  summary           String   @db.MediumText
+  lat Float
+  lng Float
+
+  location String
+  time     DateTime @default(now())
+  type     String
+  severity String?
+  summary  String   @db.MediumText
 
   @@index([time, severity], name: "time_severity")
 }
