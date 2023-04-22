@@ -25,6 +25,10 @@ export const serverSchema = z.object({
   GOOGLE_PLACES_API_KEY: z.string(),
   UPSTASH_REDIS_REST_URL: z.string(),
   UPSTASH_REDIS_REST_TOKEN: z.string(),
+  TW_KDT: z.string(),
+  TW_TWID: z.string(),
+  TW_CT0: z.string(),
+  TW_AUTH_TOKEN: z.string(),
 });
 
 /**

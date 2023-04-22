@@ -2,7 +2,7 @@ import { type NextApiRequest, type NextApiResponse } from "next";
 
 import { prisma } from "../../../server/db/client";
 
-import type { Tweet} from "rettiwt-api";
+import type { IAuthCookie, Tweet} from "rettiwt-api";
 import { Rettiwt, TweetFilter } from "rettiwt-api"
 import { env } from "../../../env/server.mjs";
 import { Configuration, OpenAIApi } from "openai";
@@ -64,9 +64,16 @@ type LocatedTweet = CategorizedTweet & {
   lng: number;
 };
 
+const rettiwtCookieDetails: IAuthCookie = {
+  kdt: env.TW_KDT,
+  twid: env.TW_TWID,
+  ct0: env.TW_CT0,
+  auth_token: env.TW_AUTH_TOKEN,
+}
+const rettiwt = Rettiwt(rettiwtCookieDetails);
+
 const MAX_PAGES = 48;
 const getTodaysTweets = async (usernameMap: Map<string, string>) => {
-  const rettiwt = Rettiwt();
   const tweetService = rettiwt.tweets;
   const tweetFilter = new TweetFilter({fromUsers: usersToScrapeList, startDate: startOfSearch.toISOString()});
   console.log('Fetching tweets from ' + startOfSearch.toISOString());
