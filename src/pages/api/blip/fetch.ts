@@ -81,6 +81,7 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   let nextCursor: string | undefined = undefined;
   let i = 0;
   do {
+    await new Promise(r => setTimeout(r, 1000)); // Sleep for 1 second between batches
     const tweetBatch: {next: {value: string}, list: Tweet[]} = await tweetService.getTweets(tweetFilter, 18, nextCursor);
     let shouldStop = false;
     tweets.push(...tweetBatch.list.map(function (tweet) {
