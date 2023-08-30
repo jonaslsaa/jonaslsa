@@ -112,9 +112,12 @@ model DocumentTranslation {
   keyType String @default("free") // free, paid
 
   filename         String
-  tranlatedContent Bytes   @db.MediumBlob // Max 16MB
   sourceLanguage   String
   targetLanguage   String
-  status           String  @default("pending") // pending, processing, completed, failed
+  documentId       String  @unique
+  documentKey      String
+  status           String  @default("pending") // pending, completed, failed
   error            String?
+
+  @@index([key, keyType], name: "key_keyType")
 }
