@@ -102,3 +102,19 @@ model Incident {
 
   @@index([time, severity], name: "time_severity")
 }
+
+model DocumentTranslation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  key     String
+  keyType String @default("free") // free, paid
+
+  filename         String
+  tranlatedContent Bytes   @db.MediumBlob // Max 16MB
+  sourceLanguage   String
+  targetLanguage   String
+  status           String  @default("pending") // pending, processing, completed, failed
+  error            String?
+}
