@@ -74,6 +74,8 @@ const rettiwt = Rettiwt(rettiwtCookieDetails);
 
 const MAX_PAGES = 48;
 const getTodaysTweets = async (usernameMap: Map<string, string>) => {
+  return [];
+  /*
   const tweetService = rettiwt.tweets;
   const tweetFilter = new TweetFilter({fromUsers: usersToScrapeList, startDate: startOfSearch.toISOString()});
   console.log('Fetching tweets from ' + startOfSearch.toISOString());
@@ -108,6 +110,7 @@ const getTodaysTweets = async (usernameMap: Map<string, string>) => {
   } while (nextCursor && i < MAX_PAGES); // Max amount of pages to fetch
   console.log("Pages fetched: " + i);
   return tweets;
+  */
 };
 
 const fetchHandleIdMap = async () => {
