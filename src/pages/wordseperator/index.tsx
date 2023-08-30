@@ -90,7 +90,7 @@ const WordSeperator: NextPage = () => {
   const [output, setOutput] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [wordFrequencyData, setWordFrequencyData] = useState<Map<string, number>>(new Map<string, number>());
-  const [animationParent] = useAutoAnimate()
+  // const [animationParent] = useAutoAnimate({ stagger: 0.1, duration: 0.5 });
 
   function copyToClipboard() {
     if (!output) return;
@@ -165,7 +165,7 @@ const WordSeperator: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="bg-gray-900 text-white w-full min-h-screen">
-        <div className="flex flex-col gap-3 p-8 w-full" ref={animationParent}>
+        <div className="flex flex-col gap-3 p-8 w-full">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold">Jonaslsa - Word seperator</h1>
             <span className="text-gray-500 text-sm">Language: Norwegian</span>
