@@ -59,8 +59,8 @@ const MAX_FILE_SIZE = 1024 * 1024 * 10; // 10MB
 const DocumentTranslate: NextPage = () => {
   const [key, setKey] = useState({ key: "", keyType: "free" });
   const apiUrl = key.keyType === 'free' ? 'https://api-free.deepl.com/v2/document' : 'https://api.deepl.com/v2/document';
-  const [sourceLanguage, setSourceLanguage] = useState("NB");
-  const [targetLanguage, setTargetLanguage] = useState("EN");
+  const [sourceLanguage, setSourceLanguage] = useState("auto");
+  const [targetLanguage, setTargetLanguage] = useState("NB");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [formality, setFormality] = useState("default");
   const tRegisterDocument = trpc.translate.registerDocument.useMutation();
