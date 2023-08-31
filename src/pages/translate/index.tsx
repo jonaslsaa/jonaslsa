@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import Link from "next/link";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
 function getApiKeyFromLocalStorage() {
   const key = localStorage.getItem("deeplApiKey");
@@ -82,7 +82,7 @@ const DocumentTranslate: NextPage = () => {
       const response = await axios.post(`${apiUrl}/${documentId}`,
         formData,
         config as any);
-      
+
       return response.data.status;
     } catch (error) {
       console.error('Check status failed:', error);
@@ -109,7 +109,7 @@ const DocumentTranslate: NextPage = () => {
 
     //Clearing the interval
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tDocuments.data]);
 
   useEffect(() => {
@@ -167,7 +167,7 @@ const DocumentTranslate: NextPage = () => {
       const config = {
         headers: {
           'Authorization': `DeepL-Auth-Key ${key.key}`,
-          'Content-Type': 'multipart/json'
+          'Content-Type': 'application/json'
         },
         responseType: 'blob', // To handle Blob data types
       };
@@ -201,6 +201,27 @@ const DocumentTranslate: NextPage = () => {
         tDocuments.refetch();
       });
     } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axiosError.response?.status === 456) {
+        alert('DeepL error: Quota on your API key has been exceeded!');
+        return;
+      }
+      if (axiosError.response?.status === 403) {
+        alert('DeepL error: API key is invalid!');
+        return;
+      }
+      if (axiosError.response?.status === 404) {
+        alert('DeepL error: Document not found!');
+        return;
+      }
+      if (axiosError.response?.status === 413) {
+        alert('DeepL error: Document too large!');
+        return;
+      }
+      if (axiosError.response?.status === 429) {
+        alert('DeepL error: Too many requests!');
+        return;
+      }
       console.error('Download failed:', error);
     }
   };
