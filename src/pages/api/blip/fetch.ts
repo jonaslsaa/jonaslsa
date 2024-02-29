@@ -2,7 +2,7 @@ import { type NextApiRequest, type NextApiResponse } from "next";
 
 import { prisma } from "../../../server/db/client";
 
-import type { IAuthCookie, Tweet} from "rettiwt-api";
+import type { Tweet } from "rettiwt-api";
 import { Rettiwt, TweetFilter } from "rettiwt-api"
 import { env } from "../../../env/server.mjs";
 import { Configuration, OpenAIApi } from "openai";
@@ -64,64 +64,30 @@ type LocatedTweet = CategorizedTweet & {
   lng: number;
 };
 
-const rettiwtCookieDetails: IAuthCookie = {
-  kdt: env.TW_KDT,
-  twid: env.TW_TWID,
-  ct0: env.TW_CT0,
-  auth_token: env.TW_AUTH_TOKEN,
-}
-const rettiwt = Rettiwt(rettiwtCookieDetails);
+const rettiwt = new Rettiwt({apiKey: '', }); // get api key with cli tool for user
 
-const MAX_PAGES = 48;
-const getTodaysTweets = async (usernameMap: Map<string, string>) => {
-  return [];
-  /*
-  const tweetService = rettiwt.tweets;
-  const tweetFilter = new TweetFilter({fromUsers: usersToScrapeList, startDate: startOfSearch.toISOString()});
+const getTodaysTweets = async () => {
+  const tweetFilter = new TweetFilter({fromUsers: usersToScrapeList, startDate: startOfSearch});
   console.log('Fetching tweets from ' + startOfSearch.toISOString());
   const tweets: MyTweet[] = [];
-  let nextCursor: string | undefined = undefined;
-  let i = 0;
-  do {
-    await new Promise(r => setTimeout(r, 1000)); // Sleep for 1 second between batches
-    const tweetBatch: {next: {value: string}, list: Tweet[]} = await tweetService.getTweets(tweetFilter, 18, nextCursor);
-    let shouldStop = false;
-    tweets.push(...tweetBatch.list.map(function (tweet) {
-      // If we have a tweet from more than 24 hours ago, we can stop fetching
-      if (new Date(tweet.createdAt).getTime() < startOfSearch.getTime()) {
-        console.log('Tweet outside of search window: ' + tweet.createdAt, " - stopping");
-        shouldStop = true;
-      }
-      return {
-        id: tweet.id,
-        createdAt: new Date(tweet.createdAt),
-        lastUpdatedAt: new Date(tweet.createdAt),
-        tweetHandle: usernameMap.get(tweet.tweetBy) ?? 'unknown',
-        content: tweet.fullText,
-        replyTo: tweet.replyTo,
-        replies: 0
-      }
-    }));
-    nextCursor = tweetBatch.next.value;
-    i++;
-    if (shouldStop) {
+  const tweetsSearch = await rettiwt.tweet.search(tweetFilter, 3);
+  for (const tweet of tweetsSearch.list) {
+    console.log('Got tweet:', JSON.stringify(tweet));
+    tweets.push({
+      id: tweet.id,
+      createdAt: new Date(tweet.createdAt),
+      lastUpdatedAt: new Date(tweet.createdAt),
+      tweetHandle: tweet.tweetBy.userName ?? 'unknown',
+      content: tweet.fullText,
+      replyTo: tweet.replyTo,
+      replies: 0
+    });
+    if (new Date(tweet.createdAt).getTime() < startOfSearch.getTime()) {
+      console.log('Tweet outside of search window: ' + tweet.createdAt, " - stopping");
       break;
     }
-  } while (nextCursor && i < MAX_PAGES); // Max amount of pages to fetch
-  console.log("Pages fetched: " + i);
-  return tweets;
-  */
-};
-
-const fetchHandleIdMap = async () => {
-  const rettiwt = Rettiwt();
-  const userService = rettiwt.users;
-  const handleIdMap = new Map();
-  for (const username of usersToScrapeList) {
-    const userDetail = await userService.getUserDetails(username);
-    handleIdMap.set(userDetail.id, username);
   }
-  return handleIdMap;
+  return tweets;
 };
 
 const filterToNewTweets = async (tweets: MyTweet[]) => {
@@ -175,7 +141,7 @@ Update: ${tweet.content}`;
 async function callCompletionModel(prompt: string) {
   try {
     const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
+      model: "gpt-3.5-turbo-0125",
       max_tokens: 512,
       temperature: 0.6,
       messages: [
@@ -328,7 +294,7 @@ const localizeTweets = async (tweets: CategorizedTweet[]) => {
 }
 
 
-const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'GET') {
     res.status(400).json({ error: 'Bad request' });
     return;
@@ -338,10 +304,10 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
     return;
   }
   const startTimer = Date.now();
-  const usernameMap = await fetchHandleIdMap();
 
-  const tweets = await getTodaysTweets(usernameMap);
+  const tweets = await getTodaysTweets();
   console.log(`Got ${tweets.length} tweets, took ${Date.now() - startTimer}ms`);
+  return res.status(200).json({ tweets });
   const parentTweets = await mergeReplyToTweets(tweets);
   console.log(`Got ${parentTweets.length} parent tweets`);
   const newTweets = await filterToNewTweets(parentTweets);
@@ -392,4 +358,4 @@ const GetNewTweets = async (req: NextApiRequest, res: NextApiResponse) => {
   res.status(200).json({ tweets: localizedTweets, saved: savedCount, tookTime, tokens });
 };
 
-export default GetNewTweets;
+export default handler;
