@@ -11,9 +11,7 @@ export const pasteRouter = router({
         language: z.string(),
     }))
     .mutation(async ({ ctx, input: { title, content, language } }) => {
-        return null;
         const slug = generateSlug(5);
-        console.log(title, content, language, slug);
         const bin = await ctx.prisma.pastebin.create({
             data: {
                 title: title,
