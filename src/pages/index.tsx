@@ -19,7 +19,7 @@ const Home: NextPage = () => {
          <div style={{ borderLeft: "1px solid white", height: "12rem" }} className="hidden sm:block opacity-60"></div>
          <div style={{ borderTop: "1px solid white", width: "14rem" }} className="block sm:hidden opacity-60"></div>
          <div>
-            <ProjectLink link="https://github.com/TheVoxcraft/" title="Github" />
+            <ProjectLink link="https://github.com/jonaslsaa/" title="Github" />
             <ProjectLink link="https://www.linkedin.com/in/jonas-silva-b1a628ba/" title="Linkedin" />
 
             <hr className="border-gray-700 my-2" />
