@@ -25,7 +25,10 @@ const timeSelectOptions = [
   {pretty: '1 w', hours: 168},
 ];
 const defaultTimeSelectIndex = 5;
-const defaultFromDate = new Date();
+
+const _LAST_DATA_AVAILABLE = "2023-04-26T19:20:56.571Z";
+
+const defaultFromDate = new Date(_LAST_DATA_AVAILABLE);
 defaultFromDate.setHours(defaultFromDate.getHours() - timeSelectOptions[defaultTimeSelectIndex].hours);
 
 const defaultFilters: Record<markerFilterType, boolean> = {
@@ -70,7 +73,7 @@ const Home: NextPage = () => {
 
 
   const setHours = (hours: number) => {
-    const newDate = new Date();
+    const newDate = new Date(_LAST_DATA_AVAILABLE);
     newDate.setHours(newDate.getHours() - hours);
     console.log("Setting hours to: ", hours, " with new date: ", newDate)
     setDateFrom(newDate);
@@ -107,7 +110,7 @@ const Home: NextPage = () => {
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
           {showWarningBanner && (<>
             <span className=" mx-4">-</span>
-            <span>We are experiencing some issues with the Twitter API, so real-time updates are not working as frequently as they should.</span>
+            <span>This is no longer real-time, as the <a target="_blank" className="underline" href="https://www.theverge.com/2023/3/30/23662832/twitter-api-tiers-free-bot-novelty-accounts-basic-enterprice-monthly-price" rel="noreferrer">price of the Twitter API is too high</a> for me to afford for this hobby project. Showing from April 2023.</span>
             <button onClick={() => setShowWarningBanner(false)} className="ml-2 text-gray-200">X</button>
           </>)}
         </div>
