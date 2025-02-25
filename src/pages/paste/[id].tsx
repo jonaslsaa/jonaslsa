@@ -8,6 +8,13 @@ import 'prismjs/themes/prism-tomorrow.css';
 import Link from "next/link";
 import { useState } from "react";
 
+// Import other languages
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-jsx'; // React JSX
+import 'prismjs/components/prism-tsx'; // React TSX
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-typescript';
+
 export async function getServerSideProps(context : { query: { id: string } }) {
   const bin = await prisma.pastebin.findUnique({
     where: {
@@ -45,6 +52,13 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
       });
   }
 
+  function getLanguage(lang: string) {
+    const r = Prism.languages[lang];
+    if (r) return r;
+    console.error(`Language ${lang} not found, defaulting to plain`);
+    return Prism.languages.plain;
+  }
+
   return <>
     <Head>
       <title>Pastebin</title>
@@ -70,7 +84,7 @@ const ShowBin: NextPage<ServerProps> = ({id, title, content, language}) => {
               placeholder={`function add(a, b) {\n  return a + b;\n}`}
               readOnly={true}
               onValueChange={code => {return}}
-              highlight={code => Prism.highlight(code, Prism.languages[language] || Prism.languages.js!, language)}
+              highlight={code => Prism.highlight(code, getLanguage(language), language)}
               padding={14}
               style={{
                 fontFamily: '"Fira code", "Fira Mono", monospace',
