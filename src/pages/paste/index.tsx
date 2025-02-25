@@ -5,20 +5,34 @@ import { trpc } from "../../utils/trpc";
 import { useState } from "react";
 
 import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import Link from "next/link";
+
+import Prism from 'prismjs';
+
+// Import other languages
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-jsx'; // React JSX
+import 'prismjs/components/prism-tsx'; // React TSX
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-typescript';
+
 
 
 const Pastebin: NextPage = () => {
   const languages = {
-    plain: {grammar: Prism.languages.plain!, name: "plain"},
-    javascript: {grammar: Prism.languages.js!, name: "javascript"},
-    html: {grammar: Prism.languages.html!, name: "html"},
-    markup: {grammar: Prism.languages.markup!, name: "markup"},
-    xml: {grammar: Prism.languages.xml!, name: "xml"},
-    css: {grammar: Prism.languages.css!, name: "css"},
-    clike: {grammar: Prism.languages.clike!, name: "clike"},
+    plain: { grammar: Prism.languages.plain!, name: "plain" },
+    javascript: { grammar: Prism.languages.js!, name: "javascript" },
+    typescript: { grammar: Prism.languages.typescript!, name: "typescript" },
+    python: { grammar: Prism.languages.python!, name: "python" },
+    html: { grammar: Prism.languages.html!, name: "html" },
+    markup: { grammar: Prism.languages.markup!, name: "markup" },
+    xml: { grammar: Prism.languages.xml!, name: "xml" },
+    css: { grammar: Prism.languages.css!, name: "css" },
+    clike: { grammar: Prism.languages.clike!, name: "clike" },
+    bash: { grammar: Prism.languages.bash!, name: "bash" },
+    jsx: { grammar: Prism.languages.jsx!, name: "react-jsx" },
+    tsx: { grammar: Prism.languages.tsx!, name: "react-tsx" },
   }
 
   const [language, setLanguage] = useState(languages.plain);
@@ -26,11 +40,11 @@ const Pastebin: NextPage = () => {
   const [title, setTitle] = useState("");
   const tCreateBin = trpc.paste.createPastebin.useMutation();
 
-  function handleSubmit () {
-    if(code.length === 0) return;
-    if(code.length > 1024*1024) return alert("Content too long");
+  function handleSubmit() {
+    if (code.length === 0) return;
+    if (code.length > 1024 * 1024) return alert("Content too long");
     const normTitle = title.length > 0 ? title : "Untitled";
-    tCreateBin.mutate({title: normTitle, content: code, language: language.name}, {
+    tCreateBin.mutate({ title: normTitle, content: code, language: language.name }, {
       onSuccess: (slug) => {
         console.log(slug);
         window.location.href = `/paste/${slug}`;
@@ -41,7 +55,7 @@ const Pastebin: NextPage = () => {
     });
   }
 
-  return ( 
+  return (
     <>
       <Head>
         <title>Pastebin</title>
@@ -66,13 +80,13 @@ const Pastebin: NextPage = () => {
             }}
             className="bg-slate-800"
           />
-          
+
           <div className="flex flex-row justify-between">
             <div className="flex gap-2">
               <select className="bg-slate-800 text-white p-2 pr-10 mt-2 rounded-sm w-32 sm:w-52" defaultValue={language.name} onChange={(e) => {
                 const sel = e.target.value;
                 Object.values(languages).forEach((lang) => {
-                  if(lang.name === sel) {
+                  if (lang.name === sel) {
                     setLanguage(lang);
                   }
                 })
