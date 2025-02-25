@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { type NextPage } from "next";
 import Head from "next/head";
 import { trpc } from "../../utils/trpc";
@@ -13,6 +14,7 @@ const Pastebin: NextPage = () => {
   const languages = {
     plain: {grammar: Prism.languages.plain!, name: "plain"},
     javascript: {grammar: Prism.languages.js!, name: "javascript"},
+    python: {grammar: Prism.languages.python!, name: "python"},
     html: {grammar: Prism.languages.html!, name: "html"},
     markup: {grammar: Prism.languages.markup!, name: "markup"},
     xml: {grammar: Prism.languages.xml!, name: "xml"},
