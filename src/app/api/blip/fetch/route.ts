@@ -25,11 +25,12 @@ const IncidentSchema = z.object({
   Helper: Build prompt string from a MessageThread
 ------------------------------------------------------------------ */
 function parseMessageThread(thread: MessageThread) {
-  const { district, municipality, category, messages } = thread;
+  const { district, municipality, category, messages, area } = thread;
 
   let sb = "Here is the police report:\n";
-  sb += `For ${district}, in municipality ${municipality}\n`;
-  sb += `Major category: ${category}\n`;
+  sb += `For ${district}, in municipality ${municipality}`;
+  if (area) sb += `, in area ${area}`;
+  sb += `\nMajor category: ${category}\n`;
   sb += "\nChronological order of events/messages:\n";
   for (const msg of messages) {
     sb += ` > ${msg.text}\n`;
@@ -44,9 +45,9 @@ async function parseIncident(thread: MessageThread) {
   const textForGPT = parseMessageThread(thread);
 
   const systemPrompt = `
-Extract information from this police incident report/messages.
+Extract information from this police incident report/messages. MUST be written in English.
 Infer from the report the following:
-- Location: The location of the incident in a clear and disambiguated way, format: PRIMARY, SECONDARY
+- Location: The location of the incident in a clear and disambiguated way (will be feed to Google Maps). Format: "Primary, secondary, [tertiary]". Example: "Trafikkontroll på Spongdalsvegen ved Berg (Trondheim municipality)" -> "Berg, Spongdalsvegen, Trondheim"
 - Type: The type of incident (short phrase, e.g. "Traffic obstruction", "Fire", etc.)
 - Severity: The severity (LOW/MED/HIGH)
 - Summary: A short summary, or "N/A" if not applicable.
