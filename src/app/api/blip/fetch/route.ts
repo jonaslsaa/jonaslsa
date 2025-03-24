@@ -47,7 +47,7 @@ async function parseIncident(thread: MessageThread) {
   const systemPrompt = `
 Extract information from this police incident report/messages. MUST be written in English.
 Infer from the report the following:
-- Location: The location of the incident in a clear and disambiguated way (will be feed to Google Maps). Format: "Primary, secondary, [tertiary]". Example: "Trafikkontroll på Spongdalsvegen ved Berg (Trondheim municipality)" -> "Berg, Spongdalsvegen, Trondheim"
+- Location: The location of the incident in a clear and disambiguated way (will be feed to Google Maps, so try to infer the best location to present). Format: "Primary, secondary, [tertiary]". Example: "Trafikkontroll på Spongdalsvegen ved Berg (Trondheim municipality)" -> "Berg, Spongdalsvegen, Trondheim"
 - Type: The type of incident (short phrase, e.g. "Traffic obstruction", "Fire", etc.)
 - Severity: The severity (LOW/MED/HIGH)
 - Summary: A short summary, or "N/A" if not applicable.
@@ -248,12 +248,12 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
 ------------------------------------------------------------------ */
 export async function GET(req: NextApiRequest) {
   // 1) Authorization check
-  const authHeader = req.headers.authorization ?? "";
+  /*const authHeader = req.headers.authorization ?? "";
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
-  }
+  }*/
 
   const client = new PolitietApiClient();
 
