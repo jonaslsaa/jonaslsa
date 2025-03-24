@@ -29,6 +29,7 @@ export const serverSchema = z.object({
   TW_TWID: z.string(),
   TW_CT0: z.string(),
   TW_AUTH_TOKEN: z.string(),
+  CRON_SECRET: z.string(),
 });
 
 /**

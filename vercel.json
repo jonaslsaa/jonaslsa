@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/blip/fetch",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
