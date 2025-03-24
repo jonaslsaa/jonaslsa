@@ -2,10 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
-import { env } from "../../../env/server.mjs";
+import { env } from "../../../../env/server.mjs";
 import { PrismaClient } from '@prisma/client';
-import type { MessageThread } from '../../lib/politiet-api-client';
-import { PolitietApiClient } from '../../lib/politiet-api-client';
+import type { MessageThread } from '../../../../lib/politiet-api-client';
+import { PolitietApiClient } from '../../../../lib/politiet-api-client';
 
 const prisma = new PrismaClient();
 
@@ -297,12 +297,4 @@ export async function GET(req: NextApiRequest) {
       status: 500,
     });
   }
-}
-
-/* ------------------------------------------------------------------
-  Next.js default API handler
------------------------------------------------------------------- */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const response = await GET(req);
-  res.status(response.status).json(response.body);
 }
