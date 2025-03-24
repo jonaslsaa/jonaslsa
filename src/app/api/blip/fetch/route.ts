@@ -71,6 +71,7 @@ Infer from the report the following:
 ------------------------------------------------------------------ */
 async function findCoordinatesFromText(district: string, text: string) {
   const locationBias = districtToLocationBias.get(district) ?? '';
+  if (locationBias === '') console.warn('Location bias for district', district, 'is empty, using no bias');
   const placeEndpoint =
     "https://maps.googleapis.com/maps/api/place/findplacefromtext/json" +
     `?inputtype=textquery&fields=geometry&language=no&locationbias=${locationBias}` +
@@ -83,7 +84,7 @@ async function findCoordinatesFromText(district: string, text: string) {
       const { lat, lng } = data.candidates[0].geometry.location;
       return { lat, lng };
     }
-    console.log("Google Places API gave an unexpected response:", data);
+    console.log("Google Places API gave an unexpected response:", data, "for", text, `(${locationBias})`);
   } catch (err) {
     console.error("Error fetching place from text:", err);
   }
