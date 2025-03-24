@@ -14,4 +14,4 @@ export const districtToLocationBias = new Map([
   ['Troms Politidistrikt', 'point:69.6598271, 18.96782164'],
 ]);
 
-export const PoliceDistricts = Object.keys(districtToLocationBias);
+export const PoliceDistricts = districtToLocationBias.keys();
