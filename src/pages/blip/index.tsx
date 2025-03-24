@@ -48,7 +48,7 @@ const defaultSeverityFilters: Record<markerSeverityType, boolean> = {
 export type TwitterHandleFilters = Record<string, Record<string, boolean>>
 const defaultTwitterHandleFilters: TwitterHandleFilters = Object.fromEntries(Object.entries(usersToScrape).map(([key, value]) => [key, Object.fromEntries(Object.entries(value).map(([key2, value2]) => [value2, true]))]))
 
-const Home: NextPage = () => {
+const IncidentMapPage: NextPage = () => {
   const [findMe, setFindMe] = useState(0)
   const [markerData, setMarkerData] = useState<MarkerData[]>([])
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
@@ -119,4 +119,4 @@ const Home: NextPage = () => {
   );
 };
 
-export default Home;
+export default IncidentMapPage;
