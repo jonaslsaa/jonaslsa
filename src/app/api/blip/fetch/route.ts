@@ -248,12 +248,12 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
 ------------------------------------------------------------------ */
 export async function GET(req: NextApiRequest) {
   // 1) Authorization check
-  /*const authHeader = req.headers.authorization ?? "";
+  const authHeader = req.headers.authorization ?? "";
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
-  }*/
+  }
 
   const client = new PolitietApiClient();
 
