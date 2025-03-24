@@ -1,4 +1,3 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -7,6 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import type { MessageThread } from '../../../../lib/politiet-api-client';
 import { PolitietApiClient } from '../../../../lib/politiet-api-client';
 import { districtToLocationBias } from '../../../../lib/districts';
+import { type NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
@@ -246,9 +246,9 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
 /* ------------------------------------------------------------------
   Main GET function: run every 30 min by cron
 ------------------------------------------------------------------ */
-export async function GET(req: NextApiRequest) {
+export async function GET(req: NextRequest) {
   // 1) Authorization check
-  const authHeader = req.headers.authorization ?? "";
+  const authHeader = req.headers.get('authorization') ?? '';
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -272,7 +272,7 @@ export async function GET(req: NextApiRequest) {
     };
     console.log("GET /api/fetch:", stats);
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
       message: "Incident data updated successfully.",
       stats: stats,
