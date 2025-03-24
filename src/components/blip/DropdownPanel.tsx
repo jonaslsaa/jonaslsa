@@ -182,7 +182,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
             <div className='text-sm mt-2'>
               <h1 className='text-1xl'>Contact</h1>
               <p className='text-gray-300 font-thin'>
-                <Link target='_blank' className='hover:text-blue-300' href="https://twitter.com/TheVoxxx">Twitter</Link> | <Link className='hover:text-blue-300' href="emailto:jonaslsa@uio.no">Email</Link>
+                <Link target='_blank' className='hover:text-blue-300' href="https://www.linkedin.com/in/jonas-silva-b1a628ba/">Linkedin</Link> | <Link className='hover:text-blue-300' href="emailto:jonasvox.2014+jonaslsa@gmail.com">Email</Link>
               </p>
             </div>
           </div>
