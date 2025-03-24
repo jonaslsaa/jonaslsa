@@ -6,6 +6,7 @@ import { env } from "../../../env/server.mjs";
 import { PrismaClient } from '@prisma/client';
 import type { MessageThread } from '../../lib/politiet-api-client';
 import { PolitietApiClient } from '../../lib/politiet-api-client';
+import { NextApiRequest, NextApiResponse } from 'next/types';
 
 const prisma = new PrismaClient();
 
@@ -181,9 +182,11 @@ async function upsertRecentIncidents(client: PolitietApiClient) {
   // If the API expects local time, adjust. Otherwise pass as is.
   const recentData = await client.getTimeRangedData(twelveHoursAgoUtc, new Date());
   const { messageThreads } = recentData;
+  console.log(`upsertRecentIncidents: got ${messageThreads.length} threads`);
   for (const thread of messageThreads) {
     await upsertThread(thread);
   }
+  return { countUpserted: messageThreads.length, };
 }
 
 /* ------------------------------------------------------------------
@@ -197,6 +200,8 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
     where: { isActive: true },
   });
 
+  let countDisabled = 0;
+  let countUpdated = 0;
   for (const incident of activeIncidents) {
     if (incident.tweetUpdatedAt < oneWeekAgo) {
       // Mark as inactive
@@ -204,40 +209,44 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
         where: { id: incident.id },
         data: { isActive: false },
       });
+      countDisabled++;
       continue;
     }
 
     // Else, fetch updated data
     try {
       const thread = await client.getThreadById(incident.tweetId);
+      countUpdated++;
       await upsertThread(thread);
     } catch (err) {
       console.error(`Could not refresh thread ${incident.tweetId}:`, err);
     }
   }
+
+  return { countDisabled, countUpdated };
 }
 
 /* ------------------------------------------------------------------
   The main GET function (run every 30 minutes by cron)
 ------------------------------------------------------------------ */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextApiRequest) {
   // 1) Authorization
-  const authHeader = request.headers.get('authorization');
+  /*const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('Unauthorized', { status: 401 });
-  }
+  }*/
 
   // 2) Perform tasks
   const client = new PolitietApiClient();
 
   try {
     // Step A: Upsert new/incidents from the past 12 hours
-    await upsertRecentIncidents(client);
+    const { countUpserted } = await upsertRecentIncidents(client);
 
     // Step B: Refresh active incidents
-    await refreshActiveIncidents(client);
+    const { countDisabled, countUpdated } = await refreshActiveIncidents(client);
 
-    return Response.json({ success: true, message: "Incident data updated successfully." });
+    return Response.json({ success: true, message: "Incident data updated successfully.", stats: { countUpserted, countDisabled, countUpdated } });
   } catch (error) {
     console.error("Error in GET /api/fetch:", error);
     return new Response(
@@ -246,3 +255,10 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  const response = await GET(req);
+  res.status(response.status).json(response.body);
+}
+
+export default handler;
