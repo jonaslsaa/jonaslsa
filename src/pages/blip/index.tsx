@@ -26,9 +26,9 @@ const timeSelectOptions = [
 ];
 const defaultTimeSelectIndex = 5;
 
-const _LAST_DATA_AVAILABLE = "2023-04-26T19:20:56.571Z";
-
-const defaultFromDate = new Date(_LAST_DATA_AVAILABLE);
+// const _LAST_DATA_AVAILABLE = "2023-04-26T19:20:56.571Z"; // -- this is where the old 2023 data ends
+const toDate = new Date();
+const defaultFromDate = new Date(toDate);
 defaultFromDate.setHours(defaultFromDate.getHours() - timeSelectOptions[defaultTimeSelectIndex].hours);
 
 const defaultFilters: Record<markerFilterType, boolean> = {
@@ -73,7 +73,7 @@ const Home: NextPage = () => {
 
 
   const setHours = (hours: number) => {
-    const newDate = new Date(_LAST_DATA_AVAILABLE);
+    const newDate = new Date(toDate);
     newDate.setHours(newDate.getHours() - hours);
     console.log("Setting hours to: ", hours, " with new date: ", newDate)
     setDateFrom(newDate);
