@@ -189,8 +189,9 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
 //    Batches GPT calls in parseIncidentsInBatches
 // ------------------------------------------------------------------
 async function upsertRecentIncidents(client: PolitietApiClient) {
+  const POLL_LAST_N_HOURS = 6;
   const twelveHoursAgoUtc = new Date();
-  twelveHoursAgoUtc.setHours(twelveHoursAgoUtc.getHours() - 12);
+  twelveHoursAgoUtc.setHours(twelveHoursAgoUtc.getHours() - POLL_LAST_N_HOURS);
 
   const recentData = await client.getTimeRangedData(twelveHoursAgoUtc, new Date());
   const { messageThreads } = recentData;
