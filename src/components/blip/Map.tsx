@@ -64,6 +64,32 @@ const markerIconMap: Record<markerFilterType, Record<markerSeverityType, L.Icon>
   }
 }
 
+function textToFilterTypeMatch(
+  markerFilterTypes: Record<markerFilterType, boolean>,
+  text: string,
+  widerText: string
+) {
+  const isVehicle =
+    text.match(
+      /\b(traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving)\b/
+    ) !== null;
+  const isVehicleAccident =
+    text.match(
+      /\b(accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license|dangerous|obstruction)\b/
+    ) !== null;
+
+  markerFilterTypes.traffic =
+    (isVehicle && isVehicleAccident) ||
+    text.match(/\b(crash|collision|traffic)\b/) !== null;
+  markerFilterTypes.speed =
+    text.match(/\b(speeding|speed)\b/) !== null ||
+    (isVehicle && widerText.match(/\b(limit)\b/) !== null);
+  markerFilterTypes.fire =
+    text.match(/\b(fire|smoke|burning|burnt|burn)\b/) !== null;
+  markerFilterTypes.missing =
+    text.match(/\b(missing|lost|kidnapped|kidnap|kidnapping)\b/) !== null;
+}
+
 function markerToFilterType(marker: MarkerData) {
   const markerFilterTypes: Record<markerFilterType, boolean> = {
     default: false,
@@ -73,17 +99,15 @@ function markerToFilterType(marker: MarkerData) {
     missing: false
   }
   const markerTypeText = marker.type.toLowerCase()
+  const markerAllText = markerTypeText + ' ' + marker.summary.toLowerCase()
 
-  const isVehicle = markerTypeText.match(/traffic|vehicle|car|truck|bus|train|bike|motorcycle|driving/) !== null
-  const isVehicleAccident = markerTypeText.match(/accident|incident|fire|smoke|violation|control|drunk|influence|drugged|offense|license|dangerous/) !== null
+  textToFilterTypeMatch(markerFilterTypes, markerTypeText, markerAllText);
 
-  markerFilterTypes.traffic = (isVehicle && isVehicleAccident) || markerTypeText.match(/crash|collision/) !== null
-  markerFilterTypes.speed = markerTypeText.match(/speeding|speed/) !== null || isVehicle && marker.summary.match(/limit/) !== null
-  markerFilterTypes.fire = markerTypeText.match(/fire|smoke|burning|burnt|burn/) !== null
-  markerFilterTypes.missing = markerTypeText.match(/missing|lost|kidnapped|kidnap|kidnapping/) !== null
-
-  // if no filter is set, set default to true
-  if (!Object.values(markerFilterTypes).some((value) => value)) markerFilterTypes.default = true
+  // if no filter is set, try wider search then if no -> set default to true
+  if (!Object.values(markerFilterTypes).some((value) => value)) {
+    textToFilterTypeMatch(markerFilterTypes, markerAllText, markerAllText);
+  }
+  if (!Object.values(markerFilterTypes).some((value) => value)) markerFilterTypes.default = true;
 
   return markerFilterTypes
 }
