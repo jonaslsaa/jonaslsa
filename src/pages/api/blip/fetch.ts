@@ -1,4 +1,4 @@
-import type { NextRequest } from 'next/server';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -6,7 +6,6 @@ import { env } from "../../../env/server.mjs";
 import { PrismaClient } from '@prisma/client';
 import type { MessageThread } from '../../lib/politiet-api-client';
 import { PolitietApiClient } from '../../lib/politiet-api-client';
-import { NextApiRequest, NextApiResponse } from 'next/types';
 
 const prisma = new PrismaClient();
 
@@ -38,27 +37,26 @@ const IncidentSchema = z.object({
 });
 
 /* ------------------------------------------------------------------
-  Helper: Build a prompt string from a MessageThread
+  Helper: Build prompt string from a MessageThread
 ------------------------------------------------------------------ */
-function parseMessageThread(messageThread: MessageThread) {
-  const { district, municipality, category, messages } = messageThread;
+function parseMessageThread(thread: MessageThread) {
+  const { district, municipality, category, messages } = thread;
 
   let sb = "Here is the police report:\n";
   sb += `For ${district}, in municipality ${municipality}\n`;
   sb += `Major category: ${category}\n`;
-  sb += `\nChronological order of events/messages:\n`;
-  for (const message of messages) {
-    sb += ` > ${message.text}\n`;
+  sb += "\nChronological order of events/messages:\n";
+  for (const msg of messages) {
+    sb += ` > ${msg.text}\n`;
   }
-
   return sb;
 }
 
 /* ------------------------------------------------------------------
   Helper: GPT parse
 ------------------------------------------------------------------ */
-async function parseIncident(messageThread: MessageThread) {
-  const incidentString = parseMessageThread(messageThread);
+async function parseIncident(thread: MessageThread) {
+  const textForGPT = parseMessageThread(thread);
 
   const systemPrompt = `
 Extract information from this police incident report/messages.
@@ -69,11 +67,12 @@ Infer from the report the following:
 - Summary: A short summary, or "N/A" if not applicable.
 `.trim();
 
+  // Note: model name "gpt-4o-mini" is a placeholder from your sample
   const completion = await openai.beta.chat.completions.parse({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: incidentString },
+      { role: "user", content: textForGPT },
     ],
     response_format: zodResponseFormat(IncidentSchema, "incident"),
   });
@@ -82,7 +81,7 @@ Infer from the report the following:
 }
 
 /* ------------------------------------------------------------------
-  xHelper: Google Places - findCoordinatesFromText
+  Helper: Google Places => findCoordinatesFromText
 ------------------------------------------------------------------ */
 async function findCoordinatesFromText(district: string, text: string) {
   const locationBias = districtToLocationBias.get(district) ?? '';
@@ -106,10 +105,10 @@ async function findCoordinatesFromText(district: string, text: string) {
 }
 
 /* ------------------------------------------------------------------
-  Helper: Convert date to naive Oslo time by adding +1 hour
+  Helper: Convert date to naive Oslo time (just +1 hour)
 ------------------------------------------------------------------ */
 function toOsloTime(date: Date): Date {
-  const OSLO_OFFSET = 1; // for CET; DST might need +2
+  const OSLO_OFFSET = 1; // +1 hour from UTC
   return new Date(date.getTime() + OSLO_OFFSET * 3600_000);
 }
 
@@ -117,28 +116,30 @@ function toOsloTime(date: Date): Date {
   Helper: upsertThread
 ------------------------------------------------------------------ */
 async function upsertThread(thread: MessageThread) {
+  // 1. Parse with GPT
   const parsed = await parseIncident(thread);
-  if (parsed === null) {
-    console.log(`Skipping thread ${thread.id}, GPT gave no valid response.`);
+  if (!parsed) {
+    console.log(`Skipping thread ${thread.id}, GPT had no valid response.`);
     return;
   }
-
   if (!parsed.location) {
     console.log(`Skipping thread ${thread.id}, GPT gave no location field.`);
     return;
   }
 
+  // 2. Find coordinates
   const coords = await findCoordinatesFromText(thread.district, parsed.location);
   if (!coords) {
     console.log(`Skipping thread ${thread.id}, coordinate lookup failed.`);
     return;
   }
 
+  // 3. Build up fields
   const updatesCount = thread.messages.length;
   const incidentTimeOslo = toOsloTime(thread.lastMessageOn);
   const entireContent = parseMessageThread(thread);
 
-  // Upsert into Prisma
+  // 4. Upsert
   await prisma.incident.upsert({
     where: { tweetId: thread.id },
     update: {
@@ -173,38 +174,61 @@ async function upsertThread(thread: MessageThread) {
 }
 
 /* ------------------------------------------------------------------
-  Task #1: Fetch the last 12 hours of data and upsert
+  Task #1: Fetch last 12 hours, insert only *new* threads
 ------------------------------------------------------------------ */
 async function upsertRecentIncidents(client: PolitietApiClient) {
   const twelveHoursAgoUtc = new Date();
   twelveHoursAgoUtc.setHours(twelveHoursAgoUtc.getHours() - 12);
 
-  // If the API expects local time, adjust. Otherwise pass as is.
   const recentData = await client.getTimeRangedData(twelveHoursAgoUtc, new Date());
   const { messageThreads } = recentData;
   console.log(`upsertRecentIncidents: got ${messageThreads.length} threads`);
+
+  // Gather the "tweetId" from each fetched thread
+  const fetchedIds = messageThreads.map(t => t.id);
+
+  // Find any that already exist in DB
+  const existingIncidents = await prisma.incident.findMany({
+    where: { tweetId: { in: fetchedIds } },
+    select: { tweetId: true },
+  });
+  const existingIds = new Set(existingIncidents.map(e => e.tweetId));
+
+  let countUpserted = 0;
   for (const thread of messageThreads) {
+    // Skip if we already have this thread in DB
+    if (existingIds.has(thread.id)) {
+      continue;
+    }
+    // It's new => upsert
     await upsertThread(thread);
+    countUpserted++;
   }
-  return { countUpserted: messageThreads.length, };
+
+  return {
+    countUpserted,
+    totalFetched: messageThreads.length,
+  };
 }
 
 /* ------------------------------------------------------------------
-  Task #2: Refresh all still-active incidents
+  Task #2: Refresh still-active incidents
 ------------------------------------------------------------------ */
 async function refreshActiveIncidents(client: PolitietApiClient) {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
+  // Fetch all active incidents from DB
   const activeIncidents = await prisma.incident.findMany({
     where: { isActive: true },
   });
 
   let countDisabled = 0;
   let countUpdated = 0;
+
   for (const incident of activeIncidents) {
+    // If older than a week, mark inactive
     if (incident.tweetUpdatedAt < oneWeekAgo) {
-      // Mark as inactive
       await prisma.incident.update({
         where: { id: incident.id },
         data: { isActive: false },
@@ -213,11 +237,17 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
       continue;
     }
 
-    // Else, fetch updated data
+    // If still active, fetch updated thread
     try {
       const thread = await client.getThreadById(incident.tweetId);
-      countUpdated++;
-      await upsertThread(thread);
+
+      // Compare new messages count to stored updates
+      const newUpdatesCount = thread.messages.length;
+      if (newUpdatesCount > incident.updates) {
+        // There are new messages => upsert
+        await upsertThread(thread);
+        countUpdated++;
+      }
     } catch (err) {
       console.error(`Could not refresh thread ${incident.tweetId}:`, err);
     }
@@ -227,38 +257,48 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
 }
 
 /* ------------------------------------------------------------------
-  The main GET function (run every 30 minutes by cron)
+  Main GET function: run every 30 min by cron
 ------------------------------------------------------------------ */
-export async function GET(request: NextApiRequest) {
-  // 1) Authorization
-  /*const authHeader = request.headers.get('authorization');
+export async function GET(req: NextApiRequest) {
+  // 1) Authorization check
+  const authHeader = req.headers.authorization ?? "";
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 });
-  }*/
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
 
-  // 2) Perform tasks
   const client = new PolitietApiClient();
 
   try {
-    // Step A: Upsert new/incidents from the past 12 hours
-    const { countUpserted } = await upsertRecentIncidents(client);
+    // A) Insert new/incidents from the past 12 hours
+    const { countUpserted, totalFetched } = await upsertRecentIncidents(client);
 
-    // Step B: Refresh active incidents
+    // B) Refresh active incidents
     const { countDisabled, countUpdated } = await refreshActiveIncidents(client);
 
-    return Response.json({ success: true, message: "Incident data updated successfully.", stats: { countUpserted, countDisabled, countUpdated } });
+    return Response.json({
+      success: true,
+      message: "Incident data updated successfully.",
+      stats: {
+        totalFetched,
+        countUpserted,
+        countDisabled,
+        countUpdated,
+      },
+    });
   } catch (error) {
     console.error("Error in GET /api/fetch:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: String(error) }),
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ success: false, error: String(error) }), {
+      status: 500,
+    });
   }
 }
 
-const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+/* ------------------------------------------------------------------
+  Next.js default API handler
+------------------------------------------------------------------ */
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const response = await GET(req);
   res.status(response.status).json(response.body);
 }
-
-export default handler;
