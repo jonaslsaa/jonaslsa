@@ -51,7 +51,7 @@ export class PolitietApiClient {
    * @param to End date (exclusive)
    * @returns Validated API response
    */
-  async getTimeRangedData(from: Date, to: Date): Promise<ApiResponse> {
+  async getTimeRangedData(from: Date, to: Date, take = 100): Promise<ApiResponse> {
     const body = JSON.stringify({
       sortByEnum: 'LastMessageOn',
       sortByAsc: false,
@@ -59,7 +59,7 @@ export class PolitietApiClient {
       dateTimeFrom: from.toISOString(),
       dateTimeTo: to.toISOString(),
       skip: 0,
-      take: 10,
+      take: take,
       category: [],
     });
 
