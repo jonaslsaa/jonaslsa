@@ -24,7 +24,7 @@ export const blipRouter = router({
       const markerData: MarkerData[] = incidents.map(incident => {
         return {
           id: incident.id,
-          tweetUrl: 'https://twitter.com/' + incident.fromTwitterHandle + '/status/' + incident.tweetId,
+          tweetUrl: 'https://www.politiet.no/politiloggen/hendelse/#/' + incident.tweetId,
           tweetHandle: incident.fromTwitterHandle,
           lat: incident.lat,
           lng: incident.lng,
