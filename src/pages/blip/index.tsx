@@ -1,7 +1,7 @@
 import { type NextPage } from "next";
 import dynamic from 'next/dynamic'
 import Head from "next/head";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import React from "react";
 import { trpc } from "../../utils/trpc";
 
@@ -9,7 +9,7 @@ import type { MarkerData, markerFilterType, markerSeverityType } from "../../com
 import Link from "next/link";
 import TimeSelect from "../../components/blip/TimeSelect";
 import DropdownPanel from "../../components/blip/DropdownPanel";
-import { usersToScrape } from "../../server/common/usersToScrape";
+import { PoliceDistricts } from '../../lib/districts';
 
 const Map = dynamic(() => import('../../components/blip/Map'), { ssr: false })
 
@@ -45,8 +45,21 @@ const defaultSeverityFilters: Record<markerSeverityType, boolean> = {
   LOW: true,
 }
 
-export type TwitterHandleFilters = Record<string, Record<string, boolean>>
-const defaultTwitterHandleFilters: TwitterHandleFilters = Object.fromEntries(Object.entries(usersToScrape).map(([key, value]) => [key, Object.fromEntries(Object.entries(value).map(([key2, value2]) => [value2, true]))]))
+export type SourceFilters = Record<string, Record<string, boolean>>
+
+function PoliceDistrictsRecords() {
+  const records: Record<string, boolean> = {};
+  for (const district of PoliceDistricts) {
+    records[district] = true;
+  }
+  return records;
+}
+
+const defaultSourceFilters: SourceFilters = {
+  'Police Districts': PoliceDistrictsRecords()
+};
+
+console.log(defaultSourceFilters)
 
 const IncidentMapPage: NextPage = () => {
   const [findMe, setFindMe] = useState(0)
@@ -54,7 +67,7 @@ const IncidentMapPage: NextPage = () => {
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
   const [filters, setFilters] = useState(defaultFilters)
   const [severityFilters, setSeverityFilters] = useState(defaultSeverityFilters)
-  const [twitterHandleFilters, setTwitterHandleFilters] = useState(defaultTwitterHandleFilters)
+  const [sourceFilters, setSourceFilters] = useState(defaultSourceFilters)
   const [showWarningBanner, setShowWarningBanner] = useState(false)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
     onSuccess: (data) => {
@@ -92,7 +105,13 @@ const IncidentMapPage: NextPage = () => {
             <div className="flex justify-between h-12">
               <div className="mt-2">
                 <span className="text-md text-gray-200 hidden md:block mb-1"><b>Blip</b> - Real-time incident mapping</span>
-                <DropdownPanel filters={filters} setFilters={setFilters} severityFilters={severityFilters} setSeverityFilters={setSeverityFilters} twitterHandleFilters={twitterHandleFilters} setTwitterHandleFilters={setTwitterHandleFilters} />
+                <DropdownPanel filters={filters}
+                                setFilters={setFilters}
+                                severityFilters={severityFilters}
+                                setSeverityFilters={setSeverityFilters}
+                                sourceFilters={sourceFilters}
+                                setSourceFilters={setSourceFilters}
+                              />
               </div>
               <div className="flex gap-1 flex-col md:items-start md:gap-2 md:flex-row">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
@@ -105,7 +124,7 @@ const IncidentMapPage: NextPage = () => {
             </div>
           </div>
         </nav>
-        <Map markerData={markerData} findMe={findMe} filters={filters} severityFilters={severityFilters} twitterHandleFilters={twitterHandleFilters} />
+        <Map markerData={markerData} findMe={findMe} filters={filters} severityFilters={severityFilters} sourceFilters={sourceFilters} />
         <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
           {showWarningBanner && (<>

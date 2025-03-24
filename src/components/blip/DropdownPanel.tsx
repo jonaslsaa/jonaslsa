@@ -2,15 +2,15 @@ import Link from 'next/link'
 import React, { useState } from 'react'
 import type { FC } from 'react'
 import type { markerFilterType, markerSeverityType } from './Map';
-import type { TwitterHandleFilters } from '../../pages/blip';
+import type { SourceFilters } from '../../pages/blip';
 
 type DropdownPanelProps = {
   filters : Record<markerFilterType, boolean>
   severityFilters: Record<markerSeverityType, boolean>
-  twitterHandleFilters: TwitterHandleFilters
+  sourceFilters: SourceFilters
   setFilters: (filters: Record<markerFilterType, boolean>) => void
   setSeverityFilters: (filters: Record<markerSeverityType, boolean>) => void
-  setTwitterHandleFilters: (filters: TwitterHandleFilters) => void
+  setSourceFilters: (filters: SourceFilters) => void
 }
 
 const capitalizeString = (s: string) => {
@@ -35,7 +35,7 @@ const markerFilterTypeToPretty = (s: markerFilterType) => {
   }
 }
 
-const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFilters, setSeverityFilters, twitterHandleFilters, setTwitterHandleFilters}) => {
+const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFilters, setSeverityFilters, sourceFilters, setSourceFilters: setSourceFilters}) => {
   const [isOpen, setIsOpen] = useState(false)
 
   // check if user presses escape key
@@ -69,7 +69,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
   }
 
   const selectAllAccounts = () => {
-    const newFilters = {...twitterHandleFilters}
+    const newFilters = {...sourceFilters}
     Object.keys(newFilters).forEach((key) => {
       const newHandleFilters = {...newFilters[key as markerFilterType]}
       Object.keys(newHandleFilters).forEach((handleKey) => {
@@ -77,11 +77,11 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
       })
       newFilters[key as markerFilterType] = newHandleFilters
     })
-    setTwitterHandleFilters(newFilters)
+    setSourceFilters(newFilters)
   }
 
   const selectNoneAccounts = () => {
-    const newFilters = {...twitterHandleFilters}
+    const newFilters = {...sourceFilters}
     Object.keys(newFilters).forEach((key) => {
       const newHandleFilters = {...newFilters[key as markerFilterType]}
       Object.keys(newHandleFilters).forEach((handleKey) => {
@@ -89,7 +89,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
       })
       newFilters[key as markerFilterType] = newHandleFilters
     })
-    setTwitterHandleFilters(newFilters)
+    setSourceFilters(newFilters)
   }
   
 
@@ -146,16 +146,16 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
                   </div>
                 ))}
               </div>
-              <h2 className='mt-4'>Twitter accounts</h2>
+              <h2 className='mt-4'>Sources</h2>
               <span className='text-gray-200/50 text-sm font-thin'><button className='hover:text-gray-200' onClick={selectAllAccounts}>Select all</button> | <button className='hover:text-gray-200' onClick={selectNoneAccounts}>Select none</button></span>
               <div className='flex flex-row flex-wrap gap-4 w-full'>
-                {Object.entries(twitterHandleFilters).map(([key, value]) => (
+                {Object.entries(sourceFilters).map(([key, value]) => (
                   <div key={key}>
                     <h3 className='text-2xl text-gray-200 font-thin'>{capitalizeString(key)}</h3>
                     <div className='flex flex-col gap-1 max-h-sm'>
                       {Object.entries(value).map(([key2, value]) => (
                         <div key={key2} className={"flex items-center pl-4 border rounded border-gray-700 hover:border-gray-100" + (value ? " bg-gray-700/10 " : "")}
-                          onClick={() => setTwitterHandleFilters({...twitterHandleFilters, [key]: {...twitterHandleFilters[key], [key2]: !value}})}>
+                          onClick={() => setSourceFilters({...sourceFilters, [key]: {...sourceFilters[key], [key2]: !value}})}>
                           <input id="bordered-checkbox-1" type="checkbox" name="bordered-checkbox" readOnly checked={value}
                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
                           <label className="w-full py-4 ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 pl-1 pr-3">@{key2}</label>
@@ -169,12 +169,12 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
             <div className='text-sm mt-2'>
               <h1 className='text-2xl'>How it works</h1>
               <p className='text-gray-300 font-thin'>
-                This project collects data from Norwegian police twitters, parses them using <Link href="https://www.openai.com/">OpenAI&apos;s ChatGPT</Link> and displays the results on a map of Norway. Severity is also decided by the model.
+                This project collects data from <Link className='text-blue-200 transition-colors hover:text-blue-300' href="https://www.politiet.no/politiloggen/">Norwegian police logs</Link>, parses them using <Link className='text-blue-200 transition-colors hover:text-blue-300' href="https://www.openai.com/">OpenAI&apos;s ChatGPT</Link> and displays the results on a map of Norway. Severity is also decided by the model.
                 <br />
                 Coordinates are extracted from the tweets and ran thorugh Google&apos;s Text Search API to get the exact location of the crime.
-                The data is then displayed on a map using <Link href="https://leafletjs.com/">Leaflet</Link>.
+                The data is then displayed on a map using <Link className='text-blue-200 transition-colors hover:text-blue-300' href="https://leafletjs.com/">Leaflet</Link>.
                 <br />
-                Tweets are scraped every 30 minutes.
+                Data are scraped every 20 minutes.
                 <br />
                 Built using the <Link target='_blank' className='text-violet-400 font-semibold' href="https://create.t3.gg/">T3 Stack</Link>.
               </p>
