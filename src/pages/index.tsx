@@ -23,9 +23,9 @@ const Home: NextPage = () => {
             <ProjectLink link="https://www.linkedin.com/in/jonas-silva-b1a628ba/" title="Linkedin" />
 
             <hr className="border-gray-700 my-2" />
+            <ProjectLink bold link="/blip/" title="Blip - Real-time police incidents" />
             <ProjectLink link="s/" title="URL Shortener" />
             <ProjectLink link="paste/" title="Pastebin" />
-            <ProjectLink link="/blip/" title="Blip - Real-time incident mapping" />
             <ProjectLink link="https://github.com/jonaslsaa/multure-cms/" title="Multure - AI managed News CMS" />
           </div>
         </div>

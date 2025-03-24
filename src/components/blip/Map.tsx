@@ -6,14 +6,14 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet';
 import seedrandom from 'seedrandom';
 
-import type { TwitterHandleFilters } from '../../pages/blip';
+import type { SourceFilters } from '../../pages/blip';
 
 type MapProps = {
   markerData: MarkerData[],
   findMe: number,
   filters: Record<markerFilterType, boolean>,
   severityFilters: Record<markerSeverityType, boolean>,
-  twitterHandleFilters: TwitterHandleFilters,
+  sourceFilters: SourceFilters,
 }
 
 export type MarkerData = {
@@ -165,15 +165,15 @@ const filterMarkers = (markerData: MarkerData[], filtersMap: Record<markerFilter
   return filteredMarkerData
 }
 
-const Map: FC<MapProps> = ({ markerData, findMe, filters, severityFilters, twitterHandleFilters }) => {
-  const flattenTwitterHandleFilters = Object.values(twitterHandleFilters).reduce((acc, val) => ({ ...acc, ...val }), {})
+const Map: FC<MapProps> = ({ markerData, findMe, filters, severityFilters, sourceFilters: sourceFilters }) => {
+  const flattenSourceHandleFilters = Object.values(sourceFilters).reduce((acc, val) => ({ ...acc, ...val }), {})
   return (
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {fixOverlappingMarkers(filterMarkers(markerData, filters, severityFilters, flattenTwitterHandleFilters)).map((marker) => (
+      {fixOverlappingMarkers(filterMarkers(markerData, filters, severityFilters, flattenSourceHandleFilters)).map((marker) => (
         <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerToIcon(marker)}>
           <Popup>
             <span style={{ float: 'right', opacity: '65%', fontSize: '0.7rem', marginRight: '.1rem' }}>

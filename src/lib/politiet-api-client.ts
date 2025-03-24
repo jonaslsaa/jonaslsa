@@ -30,6 +30,8 @@ const apiResponseSchema = z.object({
   count: z.number(),
 });
 
+const messageThreadResponseSchema = messageThreadSchema;
+
 export type ApiResponse = z.infer<typeof apiResponseSchema>;
 export type MessageThread = z.infer<typeof messageThreadSchema>;
 export type ThreadMessage = z.infer<typeof messageSchema>;
@@ -49,7 +51,7 @@ export class PolitietApiClient {
    * @param to End date (exclusive)
    * @returns Validated API response
    */
-  async getTimeRangedData(from: Date, to: Date): Promise<ApiResponse> {
+  async getTimeRangedData(from: Date, to: Date, take = 1024): Promise<ApiResponse> {
     const body = JSON.stringify({
       sortByEnum: 'LastMessageOn',
       sortByAsc: false,
@@ -57,7 +59,7 @@ export class PolitietApiClient {
       dateTimeFrom: from.toISOString(),
       dateTimeTo: to.toISOString(),
       skip: 0,
-      take: 10,
+      take: take,
       category: [],
     });
 
@@ -87,6 +89,35 @@ export class PolitietApiClient {
   async getLatest(from: Date): Promise<ApiResponse> {
     return this.getTimeRangedData(from, new Date());
   }
+
+    /**
+   * Fetch a specific message thread by its ID
+   * @param id Thread ID to fetch
+   * @returns Validated message thread
+   */
+    async getThreadById(id: string): Promise<MessageThread> {
+      const url = new URL(`${this.baseUrl}/getbyid`);
+      url.searchParams.set('id', id);
+  
+      try {
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            ...this.headers,
+            'accept': '*/*', // Wider accept header for this endpoint
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+  
+        const data = await response.json();
+        return messageThreadResponseSchema.parse(data);
+      } catch (error) {
+        throw new Error(`Failed to fetch thread ${id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
 }
 
 // Usage example:

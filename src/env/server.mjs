@@ -13,7 +13,7 @@ if (!_serverEnv.success) {
     "❌ Invalid environment variables:\n",
     ...formatErrors(_serverEnv.error.format()),
   );
-  throw new Error("Invalid environment variables");
+  throw new Error("Invalid environment variables:\n" + formatErrors(_serverEnv.error.format()));
 }
 
 for (let key of Object.keys(_serverEnv.data)) {
