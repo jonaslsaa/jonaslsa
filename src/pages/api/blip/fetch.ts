@@ -181,6 +181,7 @@ async function upsertRecentIncidents(client: PolitietApiClient) {
   twelveHoursAgoUtc.setHours(twelveHoursAgoUtc.getHours() - 12);
 
   const recentData = await client.getTimeRangedData(twelveHoursAgoUtc, new Date());
+  console.log(`upsertRecentIncidents: got ${recentData.messageThreads.length} threads`);
   const { messageThreads } = recentData;
   console.log(`upsertRecentIncidents: got ${messageThreads.length} threads`);
 
@@ -222,6 +223,7 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
   const activeIncidents = await prisma.incident.findMany({
     where: { isActive: true },
   });
+  console.log(`refreshActiveIncidents: found ${activeIncidents.length} active incidents`);
 
   let countDisabled = 0;
   let countUpdated = 0;
@@ -277,15 +279,18 @@ export async function GET(req: NextApiRequest) {
     // B) Refresh active incidents
     const { countDisabled, countUpdated } = await refreshActiveIncidents(client);
 
+    const stats = {
+      totalFetched,
+      countUpserted,
+      countDisabled,
+      countUpdated,
+    };
+    console.log("GET /api/fetch:", stats);
+
     return Response.json({
       success: true,
       message: "Incident data updated successfully.",
-      stats: {
-        totalFetched,
-        countUpserted,
-        countDisabled,
-        countUpdated,
-      },
+      stats: stats,
     });
   } catch (error) {
     console.error("Error in GET /api/fetch:", error);
