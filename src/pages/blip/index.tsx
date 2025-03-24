@@ -55,7 +55,7 @@ const IncidentMapPage: NextPage = () => {
   const [filters, setFilters] = useState(defaultFilters)
   const [severityFilters, setSeverityFilters] = useState(defaultSeverityFilters)
   const [twitterHandleFilters, setTwitterHandleFilters] = useState(defaultTwitterHandleFilters)
-  const [showWarningBanner, setShowWarningBanner] = useState(true)
+  const [showWarningBanner, setShowWarningBanner] = useState(false)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
     onSuccess: (data) => {
       if (data) {
