@@ -35,7 +35,6 @@
     "react-dom": "18",
     "react-leaflet": "^4.2.1",
     "react-simple-code-editor": "^0.13.1",
-    "rettiwt-api": "^2.6.2",
     "seedrandom": "^3.0.5",
     "superjson": "1.9.1",
     "zod": "^3.18.0"
