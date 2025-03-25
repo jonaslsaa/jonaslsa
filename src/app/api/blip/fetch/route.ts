@@ -243,6 +243,7 @@ async function upsertRecentIncidents(client: PolitietApiClient) {
 // Task #2: Refresh still-active incidents
 //    Also uses batching for new updates
 // ------------------------------------------------------------------
+export const dynamic = "force-dynamic"
 async function refreshActiveIncidents(client: PolitietApiClient) {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -305,14 +306,14 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
 // ------------------------------------------------------------------
 // Main GET function: run every 30 min by cron
 // ------------------------------------------------------------------
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   // 1) Authorization check
-  /*const authHeader = req.headers.get('authorization') ?? '';
+  const authHeader = req.headers.get('authorization') ?? '';
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
-  }*/
+  }
 
   const client = new PolitietApiClient();
 
@@ -342,4 +343,9 @@ export async function GET(req: NextRequest) {
       status: 500,
     });
   }
+}
+
+// GET wrapper for POST
+export async function GET(req: NextRequest) {
+  return POST(req);
 }
