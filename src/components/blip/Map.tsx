@@ -191,13 +191,14 @@ const filterMarkers = (markerData: MarkerData[], filtersMap: Record<markerFilter
 
 const Map: FC<MapProps> = ({ markerData, findMe, filters, severityFilters, sourceFilters: sourceFilters }) => {
   const flattenSourceHandleFilters = Object.values(sourceFilters).reduce((acc, val) => ({ ...acc, ...val }), {})
+  const markers = fixOverlappingMarkers(filterMarkers(markerData, filters, severityFilters, flattenSourceHandleFilters));
   return (
     <MapContainer center={[59.94015, 10.72185]} zoom={11} scrollWheelZoom={true} style={{ height: '100vh', width: '100%' }}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {fixOverlappingMarkers(filterMarkers(markerData, filters, severityFilters, flattenSourceHandleFilters)).map((marker) => (
+      {markers.map((marker) => (
         <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={markerToIcon(marker)}>
           <Popup>
             <span style={{ float: 'right', opacity: '65%', fontSize: '0.7rem', marginRight: '.1rem' }}>
