@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -244,7 +247,6 @@ async function upsertRecentIncidents(client: PolitietApiClient) {
 // Task #2: Refresh still-active incidents
 //    Also uses batching for new updates
 // ------------------------------------------------------------------
-export const dynamic = "force-dynamic"
 async function refreshActiveIncidents(client: PolitietApiClient) {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
