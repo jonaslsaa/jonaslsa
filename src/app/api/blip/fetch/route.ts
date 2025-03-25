@@ -316,6 +316,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const timestampStart = new Date();
+
   const client = new PolitietApiClient();
 
   try {
@@ -337,6 +339,8 @@ export async function POST(req: NextRequest) {
       success: true,
       message: "Incident data updated successfully.",
       stats: stats,
+      startedAt: timestampStart.toISOString(),
+      finishedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Error in GET /api/fetch:", error);
