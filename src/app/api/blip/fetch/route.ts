@@ -149,7 +149,8 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
 
   // 2. Build up fields
   const updatesCount = thread.messages.length;
-  const incidentTimeOslo = toOsloTime(thread.lastMessageOn);
+  const incidentCreated = toOsloTime(thread.createdOn);
+  const lastMessageOn = toOsloTime(thread.lastMessageOn);
   const entireContent = parseMessageThread(thread);
 
   // 3. Upsert
@@ -158,13 +159,13 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
     update: {
       isActive: thread.isActive,
       fromTwitterHandle: thread.district,
-      tweetUpdatedAt: thread.updatedOn,
+      tweetUpdatedAt: lastMessageOn,
       updates: updatesCount,
       content: entireContent,
       lat: coords.lat,
       lng: coords.lng,
       location: parsed.location,
-      time: incidentTimeOslo,
+      time: incidentCreated,
       type: parsed.type,
       severity: parsed.severity,
       summary: parsed.summary,
@@ -178,7 +179,7 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
       lat: coords.lat,
       lng: coords.lng,
       location: parsed.location,
-      time: incidentTimeOslo,
+      time: incidentCreated,
       type: parsed.type,
       severity: parsed.severity,
       summary: parsed.summary,
