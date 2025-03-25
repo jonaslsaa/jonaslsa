@@ -344,8 +344,3 @@ export async function POST(req: NextRequest) {
     });
   }
 }
-
-// GET wrapper for POST
-export async function GET(req: NextRequest) {
-  return POST(req);
-}
