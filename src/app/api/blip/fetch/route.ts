@@ -177,6 +177,7 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
       isActive: thread.isActive,
       tweetId: thread.id,
       fromTwitterHandle: thread.district,
+      tweetUpdatedAt: lastMessageOn,
       updates: updatesCount,
       content: entireContent,
       lat: coords.lat,
