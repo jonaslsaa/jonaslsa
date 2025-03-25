@@ -13,6 +13,8 @@ const prisma = new PrismaClient();
 // --- OpenAI ---
 const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
+const batchSize = 12;
+
 // --- Zod Schemas ---
 const IncidentSchema = z.object({
   location: z.string(),
@@ -64,11 +66,11 @@ Infer from the report the following:
 }
 
 // ------------------------------------------------------------------
-// Batch multiple parseIncident calls, chunk size = 10
+// Batch multiple parseIncident calls, chunk size = batchSize
 // ------------------------------------------------------------------
 async function parseIncidentsInBatches(
   threads: MessageThread[],
-  batchSize = 10
+  batchSize
 ): Promise<Record<string, Awaited<ReturnType<typeof parseIncident>>>> {
   const result: Record<string, Awaited<ReturnType<typeof parseIncident>>> = {};
   
@@ -218,7 +220,7 @@ async function upsertRecentIncidents(client: PolitietApiClient) {
   }
 
   // Parse all new threads in batches (OpenAI calls)
-  const parseResults = await parseIncidentsInBatches(newThreads, 10);
+  const parseResults = await parseIncidentsInBatches(newThreads, batchSize);
 
   // Then upsert the DB
   let countUpserted = 0;
@@ -284,7 +286,7 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
 
   // Now parse them all in a single or chunked batch
   if (threadsToUpdate.length > 0) {
-    const parseResults = await parseIncidentsInBatches(threadsToUpdate, 10);
+    const parseResults = await parseIncidentsInBatches(threadsToUpdate, batchSize);
 
     // Upsert each
     for (const thread of threadsToUpdate) {
