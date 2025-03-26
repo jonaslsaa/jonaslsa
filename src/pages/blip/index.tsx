@@ -132,7 +132,7 @@ const IncidentMapPage: NextPage = () => {
         </nav>
 
         {showLoadingOverlay && (
-          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-zinc-900/50 bg-opacity-50 backdrop-blur-sm">
             <div className="text-white text-xl font-thin">
               Loading the data...
             </div>
