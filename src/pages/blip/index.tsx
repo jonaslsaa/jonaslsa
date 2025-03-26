@@ -14,15 +14,15 @@ import { PoliceDistricts } from '../../lib/districts';
 const Map = dynamic(() => import('../../components/blip/Map'), { ssr: false })
 
 const timeSelectOptions = [
-  {pretty: '1 h', hours: 1},
-  {pretty: '3 h', hours: 3},
-  {pretty: '6 h', hours: 6},
-  {pretty: '12 h', hours: 12},
-  {pretty: '24 h', hours: 24},
-  {pretty: '2 d', hours: 48},
-  {pretty: '3 d', hours: 72},
-  {pretty: '5 d', hours: 120},
-  {pretty: '1 w', hours: 168},
+  { pretty: '1 h', hours: 1 },
+  { pretty: '3 h', hours: 3 },
+  { pretty: '6 h', hours: 6 },
+  { pretty: '12 h', hours: 12 },
+  { pretty: '24 h', hours: 24 },
+  { pretty: '2 d', hours: 48 },
+  { pretty: '3 d', hours: 72 },
+  { pretty: '5 d', hours: 120 },
+  { pretty: '1 w', hours: 168 },
 ];
 const defaultTimeSelectIndex = 5;
 
@@ -61,6 +61,8 @@ const defaultSourceFilters: SourceFilters = {
 
 console.log(defaultSourceFilters)
 
+let firstTime = true;
+
 const IncidentMapPage: NextPage = () => {
   const [findMe, setFindMe] = useState(0)
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
@@ -68,11 +70,12 @@ const IncidentMapPage: NextPage = () => {
   const [severityFilters, setSeverityFilters] = useState(defaultSeverityFilters)
   const [sourceFilters, setSourceFilters] = useState(defaultSourceFilters)
   const [showWarningBanner, setShowWarningBanner] = useState(false)
-  const tGetMarkerData = trpc.blip.getMarkerData.useQuery({fromDate: dateFrom.toISOString()}, {
+  const tGetMarkerData = trpc.blip.getMarkerData.useQuery({ fromDate: dateFrom.toISOString() }, {
     onSuccess: (data) => {
       if (data) {
         console.log("Got data, with fromDate: ", data.fromDate)
       }
+      firstTime = false;
     },
     onError: (error) => {
       if (error.data?.httpStatus === 429) {
@@ -92,7 +95,10 @@ const IncidentMapPage: NextPage = () => {
     setDateFrom(newDate);
   }
 
-  return ( 
+  // Show overlay only when loading initially (no data yet)
+  const showLoadingOverlay = (!tGetMarkerData.data && firstTime);
+
+  return (
     <>
       <Head>
         <title>Blip - Real-time incident mapping</title>
@@ -106,12 +112,12 @@ const IncidentMapPage: NextPage = () => {
               <div className="mt-2">
                 <span className="text-md text-gray-200 hidden md:block mb-1"><b>Blip</b> - Real-time incident mapping</span>
                 <DropdownPanel filters={filters}
-                                setFilters={setFilters}
-                                severityFilters={severityFilters}
-                                setSeverityFilters={setSeverityFilters}
-                                sourceFilters={sourceFilters}
-                                setSourceFilters={setSourceFilters}
-                              />
+                  setFilters={setFilters}
+                  severityFilters={severityFilters}
+                  setSeverityFilters={setSeverityFilters}
+                  sourceFilters={sourceFilters}
+                  setSourceFilters={setSourceFilters}
+                />
               </div>
               <div className="flex gap-1 flex-col md:items-start md:gap-2 md:flex-row">
                 <TimeSelect options={timeSelectOptions} defaultIndex={defaultTimeSelectIndex} setHours={setHours} />
@@ -124,6 +130,15 @@ const IncidentMapPage: NextPage = () => {
             </div>
           </div>
         </nav>
+
+        {showLoadingOverlay && (
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="text-white text-xl font-thin">
+              Loading the data...
+            </div>
+          </div>
+        )}
+
         <Map markerData={tGetMarkerData.data?.markerData ?? []} findMe={findMe} filters={filters} severityFilters={severityFilters} sourceFilters={sourceFilters} />
         <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
