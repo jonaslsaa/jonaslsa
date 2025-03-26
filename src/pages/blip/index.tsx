@@ -82,8 +82,8 @@ const IncidentMapPage: NextPage = () => {
       }
       console.log(error)
     },
-    staleTime: 1000 * 60 * 15, // 15 minutes stale time (this prevents the query from being run every time the window comes into focus)
     refetchInterval: 1000 * 60 * 30, // 30 minutes refetch interval (this is as often as the data is updated anyway)
+    refetchOnWindowFocus: false
   })
 
 
