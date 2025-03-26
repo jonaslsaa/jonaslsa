@@ -63,7 +63,6 @@ console.log(defaultSourceFilters)
 
 const IncidentMapPage: NextPage = () => {
   const [findMe, setFindMe] = useState(0)
-  const [markerData, setMarkerData] = useState<MarkerData[]>([])
   const [dateFrom, setDateFrom] = useState<Date>(defaultFromDate)
   const [filters, setFilters] = useState(defaultFilters)
   const [severityFilters, setSeverityFilters] = useState(defaultSeverityFilters)
@@ -73,7 +72,6 @@ const IncidentMapPage: NextPage = () => {
     onSuccess: (data) => {
       if (data) {
         console.log("Got data, with fromDate: ", data.fromDate)
-        setMarkerData(data.markerData)
       }
     },
     onError: (error) => {
@@ -83,7 +81,7 @@ const IncidentMapPage: NextPage = () => {
       console.log(error)
     },
     refetchInterval: 1000 * 60 * 30, // 30 minutes refetch interval (this is as often as the data is updated anyway)
-    refetchOnWindowFocus: false
+    staleTime: 1000 * 60 * 15, // 30 minutes stale time
   })
 
 
@@ -126,7 +124,7 @@ const IncidentMapPage: NextPage = () => {
             </div>
           </div>
         </nav>
-        <Map markerData={markerData} findMe={findMe} filters={filters} severityFilters={severityFilters} sourceFilters={sourceFilters} />
+        <Map markerData={tGetMarkerData.data?.markerData ?? []} findMe={findMe} filters={filters} severityFilters={severityFilters} sourceFilters={sourceFilters} />
         <div className="fixed bottom-0 left-0 p-2 bg-black text-gray-400 text-sm z-[2000]">
           by <span className="text-gray-200"><Link href="/">@jonaslsa</Link></span>
           {showWarningBanner && (<>
