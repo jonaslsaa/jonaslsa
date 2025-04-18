@@ -196,7 +196,7 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
 //    Batches GPT calls in parseIncidentsInBatches
 // ------------------------------------------------------------------
 async function upsertRecentIncidents(client: PolitietApiClient) {
-  const POLL_LAST_N_HOURS = 6;
+  const POLL_LAST_N_HOURS = 12;
   const twelveHoursAgoUtc = new Date();
   twelveHoursAgoUtc.setHours(twelveHoursAgoUtc.getHours() - POLL_LAST_N_HOURS);
 
