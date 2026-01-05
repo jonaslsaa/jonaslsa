@@ -1,7 +1,7 @@
 import { type NextPage } from "next";
 import dynamic from 'next/dynamic'
 import Head from "next/head";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import { trpc } from "../../utils/trpc";
 
@@ -71,21 +71,26 @@ const IncidentMapPage: NextPage = () => {
   const [sourceFilters, setSourceFilters] = useState(defaultSourceFilters)
   const [showWarningBanner, setShowWarningBanner] = useState(false)
   const tGetMarkerData = trpc.blip.getMarkerData.useQuery({ fromDate: dateFrom.toISOString() }, {
-    onSuccess: (data) => {
-      if (data) {
-        console.log("Got data, with fromDate: ", data.fromDate)
-      }
+    refetchInterval: 1000 * 60 * 30, // 30 minutes refetch interval (this is as often as the data is updated anyway)
+    staleTime: 1000 * 60 * 15, // 15 minutes stale time
+  })
+
+  // Handle query success/error with useEffect (React Query v5 pattern)
+  useEffect(() => {
+    if (tGetMarkerData.data) {
+      console.log("Got data, with fromDate: ", tGetMarkerData.data.fromDate)
       firstTime = false;
-    },
-    onError: (error) => {
-      if (error.data?.httpStatus === 429) {
+    }
+  }, [tGetMarkerData.data])
+
+  useEffect(() => {
+    if (tGetMarkerData.error) {
+      if (tGetMarkerData.error.data?.httpStatus === 429) {
         alert("Too many requests, please wait a bit before trying again")
       }
-      console.log(error)
-    },
-    refetchInterval: 1000 * 60 * 30, // 30 minutes refetch interval (this is as often as the data is updated anyway)
-    staleTime: 1000 * 60 * 15, // 30 minutes stale time
-  })
+      console.log(tGetMarkerData.error)
+    }
+  }, [tGetMarkerData.error])
 
 
   const setHours = (hours: number) => {

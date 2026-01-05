@@ -1,9 +1,10 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 import { type Context } from "./context";
 import type { NextApiRequest } from "next";
-import { createTRPCUpstashLimiter } from "@trpc-limiter/upstash";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -25,16 +26,25 @@ const getFingerprint = (req: NextApiRequest | undefined) => {
   return ip || "no-ip_" + Math.random().toString(36).substr(2, 6)
 }
 
-export const rateLimiter = createTRPCUpstashLimiter({
-  root: t,
-  fingerprint: (ctx) => getFingerprint(ctx.req),
-  windowMs: 10000,
-  message: (hitInfo) =>
-    `Too many requests, please try again later. ${Math.ceil(
-      (hitInfo.reset - Date.now()) / 1000
-    )}`,
-  max: 16,
-})
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(16, "10 s"),
+  analytics: true,
+});
+
+export const rateLimiter = t.middleware(async ({ ctx, next }) => {
+  const fingerprint = getFingerprint(ctx.req);
+  const { success, reset } = await ratelimit.limit(fingerprint);
+
+  if (!success) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Too many requests, please try again later. ${Math.ceil((reset - Date.now()) / 1000)}s`,
+    });
+  }
+
+  return next();
+});
 
 /**
  * Unprotected procedure
