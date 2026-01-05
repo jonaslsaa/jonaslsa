@@ -7,7 +7,7 @@ const Home: NextPage = () => {
     <>
       <Head>
         <title>Jonas Lien Sampaio da Silva</title>
-        <meta name="description" content="Jonas Silva personal website" />
+        <meta name="description" content="Jonas's Personal website" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-gray-900 text-white">

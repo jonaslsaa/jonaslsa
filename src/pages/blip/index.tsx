@@ -102,7 +102,7 @@ const IncidentMapPage: NextPage = () => {
     <>
       <Head>
         <title>Blip - Real-time incident mapping</title>
-        <meta name="description" content="Jonas Silva personal website" />
+        <meta name="description" content="Jonas's Personal website" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>

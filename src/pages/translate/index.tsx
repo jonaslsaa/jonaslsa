@@ -230,7 +230,7 @@ const DocumentTranslate: NextPage = () => {
     <>
       <Head>
         <title>DeepL Document Translate via API</title>
-        <meta name="description" content="Jonas Silva personal website" />
+        <meta name="description" content="Jonas's Personal website" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="bg-gray-900 min-h-screen w-full text-white flex justify-center items-center">

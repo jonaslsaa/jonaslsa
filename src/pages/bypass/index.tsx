@@ -63,7 +63,7 @@ const BypassPage: NextPage = () => {
     <>
       <Head>
         <title>Doublepass</title>
-        <meta name="description" content="Jonas Silva personal website" />
+        <meta name="description" content="Jonas's Personal website" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="bg-gray-900 min-h-screen text-white flex flex-col items-center justify-center w-full flex-1 px-7 text-center">
