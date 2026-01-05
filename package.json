@@ -29,7 +29,6 @@
     "leaflet": "^1.9.3",
     "next": "^14.2.35",
     "next-auth": "^4.24.13",
-    "node-libcurl": "^3.0.0",
     "openai": "^4.89.0",
     "pako": "^2.1.0",
     "prismjs": "^1.30.0",
