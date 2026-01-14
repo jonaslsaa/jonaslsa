@@ -201,6 +201,58 @@ export const yt2articleRouter = router({
     }),
 
   /**
+   * Get video data by videoId (for generation page direct navigation)
+   * Returns cached article if exists, otherwise fetches fresh transcript/metadata
+   */
+  getVideoData: yt2articleProtectedProcedure
+    .input(
+      z.object({
+        videoId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Check cache first
+      const cached = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId: input.videoId },
+      });
+
+      if (cached) {
+        return {
+          cached: true as const,
+          videoId: input.videoId,
+          title: cached.videoTitle,
+          channelName: cached.channelName,
+          article: cached.article,
+          modelUsed: cached.modelUsed,
+          transcript: cached.transcript,
+        };
+      }
+
+      // Fetch metadata and transcript in parallel
+      const [metadata, transcriptSegments] = await Promise.all([
+        fetchVideoMetadata(input.videoId),
+        fetchTranscript(input.videoId),
+      ]);
+
+      const transcriptText = formatTranscriptAsText(transcriptSegments);
+
+      if (!transcriptText || transcriptText.trim().length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This video doesn't have captions/subtitles available.",
+        });
+      }
+
+      return {
+        cached: false as const,
+        videoId: input.videoId,
+        title: metadata.title,
+        channelName: metadata.channelName,
+        transcript: transcriptText,
+      };
+    }),
+
+  /**
    * Save generated article to database
    */
   saveArticle: yt2articleProtectedProcedure
