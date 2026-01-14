@@ -1,12 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure } from "../trpc";
-import {
-  verifyPassword,
-  createJwt,
-  verifyJwt,
-  getJwtFromRequest,
-} from "../../yt2article/auth";
+import { router, publicProcedure, yt2articleProtectedProcedure } from "../trpc";
+import { verifyPassword, createJwt, getJwtFromRequest, verifyJwt } from "../../yt2article/auth";
 import {
   extractVideoId,
   fetchTranscript,
@@ -56,18 +51,9 @@ export const yt2articleRouter = router({
   /**
    * Check if a cached article exists for a video
    */
-  getCached: publicProcedure
+  getCached: yt2articleProtectedProcedure
     .input(z.object({ videoId: z.string() }))
     .query(async ({ input, ctx }) => {
-      // Verify auth
-      const token = getJwtFromRequest(ctx.req);
-      if (!token || !verifyJwt(token)) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Please log in first",
-        });
-      }
-
       const cached = await ctx.prisma.yt2Article.findUnique({
         where: { videoId: input.videoId },
       });
@@ -90,7 +76,7 @@ export const yt2articleRouter = router({
    * Prepare video data: extract transcript and metadata
    * Returns data needed for article generation
    */
-  prepareVideo: publicProcedure
+  prepareVideo: yt2articleProtectedProcedure
     .input(
       z.object({
         url: z.string(),
@@ -98,15 +84,6 @@ export const yt2articleRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      // Verify auth
-      const token = getJwtFromRequest(ctx.req);
-      if (!token || !verifyJwt(token)) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Please log in first",
-        });
-      }
-
       // Validate model ID
       const modelId = input.modelId || DEFAULT_MODEL_ID;
       if (!isValidModelId(modelId)) {
@@ -168,9 +145,34 @@ export const yt2articleRouter = router({
     }),
 
   /**
+   * Get a public article by video ID (no auth required for viewing)
+   */
+  getPublicArticle: publicProcedure
+    .input(z.object({ videoId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const article = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId: input.videoId },
+      });
+
+      if (!article) {
+        return { found: false as const };
+      }
+
+      return {
+        found: true as const,
+        videoId: article.videoId,
+        videoTitle: article.videoTitle,
+        channelName: article.channelName,
+        article: article.article,
+        modelUsed: article.modelUsed,
+        createdAt: article.createdAt,
+      };
+    }),
+
+  /**
    * Save generated article to database
    */
-  saveArticle: publicProcedure
+  saveArticle: yt2articleProtectedProcedure
     .input(
       z.object({
         videoId: z.string(),
@@ -182,15 +184,6 @@ export const yt2articleRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      // Verify auth
-      const token = getJwtFromRequest(ctx.req);
-      if (!token || !verifyJwt(token)) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Please log in first",
-        });
-      }
-
       // Upsert to handle race conditions
       const saved = await ctx.prisma.yt2Article.upsert({
         where: { videoId: input.videoId },

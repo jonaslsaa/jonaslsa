@@ -9,6 +9,7 @@ type ArticleViewProps = {
   modelUsed: string;
   isStreaming: boolean;
   isCached?: boolean;
+  showShareButton?: boolean;
 };
 
 const ArticleView: FC<ArticleViewProps> = ({
@@ -19,8 +20,24 @@ const ArticleView: FC<ArticleViewProps> = ({
   modelUsed,
   isStreaming,
   isCached,
+  showShareButton = true,
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/yt2article/view/${videoId}`
+    : "";
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
   // Simple markdown to HTML conversion
   const renderMarkdown = (md: string) => {
@@ -79,6 +96,18 @@ const ArticleView: FC<ArticleViewProps> = ({
           </div>
           <div className="flex items-center gap-3">
             <span className={`text-xs ${mutedClass}`}>{modelUsed}</span>
+            {showShareButton && !isStreaming && (
+              <button
+                onClick={handleCopyLink}
+                className={`rounded-md px-4 py-2 text-sm transition-colors ${
+                  isDarkMode
+                    ? "bg-slate-800 text-white hover:bg-slate-700"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                }`}
+              >
+                {copied ? "✓ Copied!" : "🔗 Share"}
+              </button>
+            )}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={`rounded-md px-4 py-2 text-sm transition-colors ${
