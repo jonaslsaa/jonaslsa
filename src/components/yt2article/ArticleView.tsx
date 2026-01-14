@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { FC } from "react";
+import { Streamdown } from "streamdown";
 
 type ArticleViewProps = {
   content: string;
@@ -37,34 +38,6 @@ const ArticleView: FC<ArticleViewProps> = ({
     } catch (err) {
       console.error("Failed to copy:", err);
     }
-  };
-
-  // Simple markdown to HTML conversion
-  const renderMarkdown = (md: string) => {
-    return (
-      md
-        // Code blocks (must be before inline code)
-        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="bg-slate-800 p-4 rounded-md overflow-x-auto my-4"><code>$2</code></pre>')
-        // Headers
-        .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-6 mb-3">$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-8 mb-4">$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-8 mb-6">$1</h1>')
-        // Bold and italic
-        .replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>")
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.*?)\*/g, "<em>$1</em>")
-        // Inline code
-        .replace(/`([^`]+)`/g, '<code class="bg-slate-700 px-1 rounded text-sm">$1</code>')
-        // Lists
-        .replace(/^\- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
-        .replace(/^\d+\. (.*$)/gim, '<li class="ml-4 list-decimal">$1</li>')
-        // Horizontal rule
-        .replace(/^---$/gim, '<hr class="my-8 border-slate-600" />')
-        // Paragraphs (double newline)
-        .replace(/\n\n/g, '</p><p class="mb-4">')
-        // Single newlines
-        .replace(/\n/g, "<br />")
-    );
   };
 
   const bgClass = isDarkMode ? "bg-gray-900" : "bg-white";
@@ -133,13 +106,9 @@ const ArticleView: FC<ArticleViewProps> = ({
         </div>
 
         {/* Main content */}
-        <div
-          className={`prose prose-lg max-w-none ${textClass}`}
-          style={{ lineHeight: 1.8 }}
-          dangerouslySetInnerHTML={{
-            __html: `<p class="mb-4">${renderMarkdown(content)}</p>`,
-          }}
-        />
+        <div className={`prose prose-lg max-w-none ${textClass} ${isDarkMode ? "prose-invert" : ""}`}>
+          <Streamdown>{content}</Streamdown>
+        </div>
 
         {/* Streaming indicator */}
         {isStreaming && (
