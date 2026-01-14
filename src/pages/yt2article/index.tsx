@@ -5,6 +5,7 @@ import { trpc } from "../../utils/trpc";
 import LoginForm from "../../components/yt2article/LoginForm";
 import UrlInput from "../../components/yt2article/UrlInput";
 import ArticleView from "../../components/yt2article/ArticleView";
+import RegenerateModal from "../../components/yt2article/RegenerateModal";
 
 type AppState = "loading" | "login" | "input" | "preparing" | "streaming" | "done";
 
@@ -22,6 +23,7 @@ interface CachedData {
   channelName: string;
   article: string;
   modelUsed: string;
+  transcript: string;
 }
 
 const Yt2Article: NextPage = () => {
@@ -32,6 +34,8 @@ const Yt2Article: NextPage = () => {
   const [cachedData, setCachedData] = useState<CachedData | null>(null);
   const [articleContent, setArticleContent] = useState<string>("");
   const [isCached, setIsCached] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // tRPC queries and mutations
   const checkAuth = trpc.yt2article.checkAuth.useQuery(undefined, {
@@ -43,6 +47,7 @@ const Yt2Article: NextPage = () => {
   const loginMutation = trpc.yt2article.login.useMutation();
   const prepareVideoMutation = trpc.yt2article.prepareVideo.useMutation();
   const saveArticleMutation = trpc.yt2article.saveArticle.useMutation();
+  const getTranscriptMutation = trpc.yt2article.getTranscript.useMutation();
 
   // Check auth status on load
   useEffect(() => {
@@ -90,6 +95,7 @@ const Yt2Article: NextPage = () => {
           channelName: data.channelName,
           article: data.article,
           modelUsed: data.modelUsed,
+          transcript: data.transcript,
         });
         setArticleContent(data.article);
         setIsCached(true);
@@ -210,6 +216,57 @@ const Yt2Article: NextPage = () => {
     setState("input");
   };
 
+  // Open regenerate modal
+  const handleOpenRegenerateModal = () => {
+    setShowRegenerateModal(true);
+  };
+
+  // Handle regeneration with a different model
+  const handleRegenerate = async (modelId: string) => {
+    const videoId = cachedData?.videoId || videoData?.videoId;
+    const title = cachedData?.title || videoData?.title;
+    const channelName = cachedData?.channelName || videoData?.channelName;
+
+    if (!videoId || !title || !channelName) {
+      setPrepareError("Missing video data for regeneration.");
+      setShowRegenerateModal(false);
+      return;
+    }
+
+    setIsRegenerating(true);
+    setShowRegenerateModal(false);
+
+    try {
+      // Get transcript - from state or fetch fresh
+      let transcript = cachedData?.transcript || videoData?.transcript;
+
+      if (!transcript) {
+        console.log("Transcript missing, fetching from server...");
+        const result = await getTranscriptMutation.mutateAsync({ videoId });
+        transcript = result.transcript;
+      }
+
+      // Create video data for streaming
+      const regenerateData: VideoData = {
+        videoId,
+        title,
+        channelName,
+        transcript,
+        modelId,
+      };
+
+      setVideoData(regenerateData);
+      setCachedData(null);
+      setIsCached(false);
+      await startStreaming(regenerateData);
+    } catch (error) {
+      console.error("Regeneration error:", error);
+      setPrepareError(error instanceof Error ? error.message : "Failed to regenerate article");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   // Get display data
   const displayVideoId = cachedData?.videoId || videoData?.videoId || "";
   const displayTitle = cachedData?.title || videoData?.title || "";
@@ -235,6 +292,8 @@ const Yt2Article: NextPage = () => {
             modelUsed={displayModel}
             isStreaming={state === "streaming"}
             isCached={isCached}
+            showRegenerateButton={true}
+            onRegenerateClick={handleOpenRegenerateModal}
           />
           {state === "done" && (
             <div className="fixed bottom-6 right-6">
@@ -285,6 +344,16 @@ const Yt2Article: NextPage = () => {
           </div>
         </main>
       )}
+
+      {/* Regenerate modal */}
+      <RegenerateModal
+        isOpen={showRegenerateModal}
+        onClose={() => setShowRegenerateModal(false)}
+        onRegenerate={handleRegenerate}
+        models={getModels.data?.models || []}
+        currentModelId={displayModel}
+        isLoading={isRegenerating}
+      />
     </>
   );
 };

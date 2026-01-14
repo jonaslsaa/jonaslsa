@@ -115,6 +115,7 @@ export const yt2articleRouter = router({
           channelName: cached.channelName,
           article: cached.article,
           modelUsed: cached.modelUsed,
+          transcript: cached.transcript, // Include for regeneration
         };
       }
 
@@ -167,6 +168,36 @@ export const yt2articleRouter = router({
         modelUsed: article.modelUsed,
         createdAt: article.createdAt,
       };
+    }),
+
+  /**
+   * Get transcript for a video (for regeneration when transcript is missing)
+   */
+  getTranscript: yt2articleProtectedProcedure
+    .input(z.object({ videoId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      // First check if we have it in the database
+      const cached = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId: input.videoId },
+        select: { transcript: true },
+      });
+
+      if (cached?.transcript && cached.transcript.length > 0) {
+        return { transcript: cached.transcript };
+      }
+
+      // Fetch fresh from YouTube
+      const transcriptSegments = await fetchTranscript(input.videoId);
+      const transcriptText = formatTranscriptAsText(transcriptSegments);
+
+      if (!transcriptText || transcriptText.trim().length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Could not fetch transcript for this video",
+        });
+      }
+
+      return { transcript: transcriptText };
     }),
 
   /**

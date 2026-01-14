@@ -11,6 +11,8 @@ type ArticleViewProps = {
   isStreaming: boolean;
   isCached?: boolean;
   showShareButton?: boolean;
+  showRegenerateButton?: boolean;
+  onRegenerateClick?: () => void;
 };
 
 const ArticleView: FC<ArticleViewProps> = ({
@@ -22,6 +24,8 @@ const ArticleView: FC<ArticleViewProps> = ({
   isStreaming,
   isCached,
   showShareButton = true,
+  showRegenerateButton = false,
+  onRegenerateClick,
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -67,12 +71,24 @@ const ArticleView: FC<ArticleViewProps> = ({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className={`text-xs ${mutedClass}`}>{modelUsed}</span>
+            {showRegenerateButton && !isStreaming && onRegenerateClick && (
+              <button
+                onClick={onRegenerateClick}
+                className={`rounded-md px-3 py-2 text-sm transition-colors ${
+                  isDarkMode
+                    ? "bg-slate-800 text-white hover:bg-slate-700"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                }`}
+              >
+                🔄 Regenerate
+              </button>
+            )}
             {showShareButton && !isStreaming && (
               <button
                 onClick={handleCopyLink}
-                className={`rounded-md px-4 py-2 text-sm transition-colors ${
+                className={`rounded-md px-3 py-2 text-sm transition-colors ${
                   isDarkMode
                     ? "bg-slate-800 text-white hover:bg-slate-700"
                     : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -83,13 +99,13 @@ const ArticleView: FC<ArticleViewProps> = ({
             )}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`rounded-md px-4 py-2 text-sm transition-colors ${
+              className={`rounded-md px-3 py-2 text-sm transition-colors ${
                 isDarkMode
                   ? "bg-slate-800 text-white hover:bg-slate-700"
                   : "bg-gray-200 text-gray-800 hover:bg-gray-300"
               }`}
             >
-              {isDarkMode ? "☀️ Light" : "🌙 Dark"}
+              {isDarkMode ? "☀️" : "🌙"}
             </button>
           </div>
         </div>
