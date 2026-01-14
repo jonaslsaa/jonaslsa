@@ -13,6 +13,9 @@ type ArticleViewProps = {
   showShareButton?: boolean;
   showRegenerateButton?: boolean;
   onRegenerateClick?: () => void;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  cost?: number | null;
 };
 
 const ArticleView: FC<ArticleViewProps> = ({
@@ -26,6 +29,9 @@ const ArticleView: FC<ArticleViewProps> = ({
   showShareButton = true,
   showRegenerateButton = false,
   onRegenerateClick,
+  inputTokens,
+  outputTokens,
+  cost,
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -131,6 +137,19 @@ const ArticleView: FC<ArticleViewProps> = ({
           <div className="mt-4 flex items-center gap-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
             <span className={`text-sm ${mutedClass}`}>Generating...</span>
+          </div>
+        )}
+
+        {/* Usage info */}
+        {!isStreaming && (inputTokens || outputTokens || cost !== null) && (
+          <div className={`mt-8 border-t pt-4 ${borderClass}`}>
+            <p className={`text-xs ${mutedClass}`}>
+              {inputTokens && <span>{inputTokens.toLocaleString()} input</span>}
+              {inputTokens && outputTokens && <span> · </span>}
+              {outputTokens && <span>{outputTokens.toLocaleString()} output</span>}
+              {(inputTokens || outputTokens) && cost !== null && cost !== undefined && <span> · </span>}
+              {cost !== null && cost !== undefined && <span>${cost.toFixed(4)}</span>}
+            </p>
           </div>
         )}
       </article>

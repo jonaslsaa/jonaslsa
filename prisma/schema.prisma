@@ -134,5 +134,9 @@ model Yt2Article {
   article     String   @db.LongText
   modelUsed   String
 
+  inputTokens  Int?
+  outputTokens Int?
+  cost         Float?
+
   @@index([createdAt])
 }

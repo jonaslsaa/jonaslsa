@@ -63,6 +63,9 @@ const ViewArticle: NextPage = () => {
         isStreaming={false}
         isCached={true}
         showShareButton={true}
+        inputTokens={data.inputTokens}
+        outputTokens={data.outputTokens}
+        cost={data.cost}
       />
     </>
   );

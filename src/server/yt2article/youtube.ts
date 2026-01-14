@@ -35,8 +35,6 @@ export function extractVideoId(url: string): string | null {
  */
 export async function fetchTranscript(videoId: string): Promise<TranscriptSegment[]> {
   try {
-    console.log("Fetching transcript for video:", videoId);
-
     // Try English first, then auto-detect
     let subtitles = await getSubtitles({ videoID: videoId, lang: "en" });
 
@@ -44,8 +42,6 @@ export async function fetchTranscript(videoId: string): Promise<TranscriptSegmen
       // Try without language specification (auto-detect)
       subtitles = await getSubtitles({ videoID: videoId });
     }
-
-    console.log("Subtitles count:", subtitles?.length ?? 0);
 
     if (!subtitles || subtitles.length === 0) {
       return [];

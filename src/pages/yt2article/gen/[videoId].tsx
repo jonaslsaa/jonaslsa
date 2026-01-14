@@ -16,6 +16,12 @@ interface VideoData {
   modelId: string;
 }
 
+interface UsageData {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cost: number | null;
+}
+
 const GeneratePage: NextPage = () => {
   const router = useRouter();
   const { videoId, modelId: queryModelId } = router.query;
@@ -28,6 +34,7 @@ const GeneratePage: NextPage = () => {
   const [displayModel, setDisplayModel] = useState<string>("");
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
 
   // tRPC queries and mutations
   const checkAuth = trpc.yt2article.checkAuth.useQuery(undefined, {
@@ -51,6 +58,7 @@ const GeneratePage: NextPage = () => {
     async (data: VideoData) => {
       setState("streaming");
       setArticleContent("");
+      setUsageData(null);
 
       let fullContent = "";
 
@@ -92,12 +100,17 @@ const GeneratePage: NextPage = () => {
                   content?: string;
                   done?: boolean;
                   error?: string;
+                  usage?: UsageData;
                 };
                 if (parsed.content) {
                   fullContent += parsed.content;
                   setArticleContent(fullContent);
                 }
                 if (parsed.done) {
+                  const usage = parsed.usage;
+                  if (usage) {
+                    setUsageData(usage);
+                  }
                   await saveArticleMutation.mutateAsync({
                     videoId: data.videoId,
                     videoTitle: data.title,
@@ -105,6 +118,9 @@ const GeneratePage: NextPage = () => {
                     transcript: data.transcript,
                     article: fullContent,
                     modelUsed: data.modelId,
+                    inputTokens: usage?.inputTokens,
+                    outputTokens: usage?.outputTokens,
+                    cost: usage?.cost,
                   });
                   // Clean up URL by removing query params
                   void router.replace(`/yt2article/gen/${data.videoId}`, undefined, { shallow: true });
@@ -158,6 +174,12 @@ const GeneratePage: NextPage = () => {
       setArticleContent(data.article);
       setDisplayModel(data.modelUsed);
       setIsCached(true);
+      // Set usage data if available (TypeScript: data is narrowed to cached branch)
+      setUsageData({
+        inputTokens: data.inputTokens ?? null,
+        outputTokens: data.outputTokens ?? null,
+        cost: data.cost ?? null,
+      });
       setState("done");
     } else {
       // Need to generate
@@ -288,6 +310,9 @@ const GeneratePage: NextPage = () => {
           isCached={isCached}
           showRegenerateButton={true}
           onRegenerateClick={() => setShowRegenerateModal(true)}
+          inputTokens={usageData?.inputTokens}
+          outputTokens={usageData?.outputTokens}
+          cost={usageData?.cost}
         />
         {state === "done" && (
           <div className="fixed bottom-6 right-6">

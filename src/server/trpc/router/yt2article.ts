@@ -69,6 +69,9 @@ export const yt2articleRouter = router({
         channelName: cached.channelName,
         modelUsed: cached.modelUsed,
         createdAt: cached.createdAt,
+        inputTokens: cached.inputTokens,
+        outputTokens: cached.outputTokens,
+        cost: cached.cost,
       };
     }),
 
@@ -167,6 +170,9 @@ export const yt2articleRouter = router({
         article: article.article,
         modelUsed: article.modelUsed,
         createdAt: article.createdAt,
+        inputTokens: article.inputTokens,
+        outputTokens: article.outputTokens,
+        cost: article.cost,
       };
     }),
 
@@ -225,6 +231,9 @@ export const yt2articleRouter = router({
           article: cached.article,
           modelUsed: cached.modelUsed,
           transcript: cached.transcript,
+          inputTokens: cached.inputTokens,
+          outputTokens: cached.outputTokens,
+          cost: cached.cost,
         };
       }
 
@@ -264,6 +273,9 @@ export const yt2articleRouter = router({
         transcript: z.string(),
         article: z.string(),
         modelUsed: z.string(),
+        inputTokens: z.number().nullable().optional(),
+        outputTokens: z.number().nullable().optional(),
+        cost: z.number().nullable().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -277,10 +289,16 @@ export const yt2articleRouter = router({
           transcript: input.transcript,
           article: input.article,
           modelUsed: input.modelUsed,
+          inputTokens: input.inputTokens ?? null,
+          outputTokens: input.outputTokens ?? null,
+          cost: input.cost ?? null,
         },
         update: {
           article: input.article,
           modelUsed: input.modelUsed,
+          inputTokens: input.inputTokens ?? null,
+          outputTokens: input.outputTokens ?? null,
+          cost: input.cost ?? null,
         },
       });
 

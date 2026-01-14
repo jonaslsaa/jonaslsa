@@ -74,6 +74,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = streamText({
       model: openrouter(selectedModelId),
       prompt,
+      providerOptions: {
+        openrouter: {
+          usage: { include: true },
+        },
+      },
     });
 
     // Set up SSE headers only after we've started successfully
@@ -86,7 +91,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
     }
 
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    // Get usage data after streaming completes
+    const usage = await result.usage;
+    const providerMetadata = await result.providerMetadata;
+
+    // Get cost from provider metadata (OpenRouter includes it in usage response)
+    const openrouterMeta = providerMetadata?.openrouter as { usage?: { cost?: number } } | undefined;
+    const cost = openrouterMeta?.usage?.cost ?? null;
+
+    res.write(
+      `data: ${JSON.stringify({
+        done: true,
+        usage: {
+          inputTokens: usage?.inputTokens ?? null,
+          outputTokens: usage?.outputTokens ?? null,
+          cost,
+        },
+      })}\n\n`
+    );
     res.end();
   } catch (error) {
     console.error("Streaming error:", error);
