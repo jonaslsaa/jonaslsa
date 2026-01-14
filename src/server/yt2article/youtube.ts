@@ -35,15 +35,21 @@ export function extractVideoId(url: string): string | null {
  */
 export async function fetchTranscript(videoId: string): Promise<TranscriptSegment[]> {
   try {
+    console.log(`Fetching transcript for video: ${videoId}`);
+
     // Try English first, then auto-detect
     let subtitles = await getSubtitles({ videoID: videoId, lang: "en" });
+    console.log(`English subtitles result: ${subtitles?.length ?? 0} segments`);
 
     if (!subtitles || subtitles.length === 0) {
       // Try without language specification (auto-detect)
+      console.log("Trying auto-detect language...");
       subtitles = await getSubtitles({ videoID: videoId });
+      console.log(`Auto-detect subtitles result: ${subtitles?.length ?? 0} segments`);
     }
 
     if (!subtitles || subtitles.length === 0) {
+      console.log("No subtitles found for video");
       return [];
     }
 
@@ -54,6 +60,7 @@ export async function fetchTranscript(videoId: string): Promise<TranscriptSegmen
     }));
   } catch (error) {
     console.error("Transcript fetch error:", error);
+    console.error("Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
     throw new Error(
       `Failed to fetch transcript: ${error instanceof Error ? error.message : "Unknown error"}`
     );
