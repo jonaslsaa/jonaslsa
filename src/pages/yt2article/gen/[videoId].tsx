@@ -106,6 +106,8 @@ const GeneratePage: NextPage = () => {
                     article: fullContent,
                     modelUsed: data.modelId,
                   });
+                  // Clean up URL by removing query params
+                  void router.replace(`/yt2article/gen/${data.videoId}`, undefined, { shallow: true });
                   setState("done");
                 }
                 if (parsed.error) {
