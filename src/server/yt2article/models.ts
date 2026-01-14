@@ -25,6 +25,16 @@ export const AVAILABLE_MODELS: AIModel[] = [
     name: "DeepSeek V3.2",
     provider: "DeepSeek",
   },
+  {
+    id: "moonshotai/kimi-k2-0905",
+    name: "Kimi K2",
+    provider: "Moonshot AI",
+  },
+  {
+    id: "moonshotai/kimi-k2-thinking",
+    name: "Kimi K2 Thinking",
+    provider: "Moonshot AI",
+  }
 ];
 
 export function getModelById(id: string): AIModel | undefined {
