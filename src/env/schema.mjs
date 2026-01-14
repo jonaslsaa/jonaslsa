@@ -26,6 +26,9 @@ export const serverSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string(),
   UPSTASH_REDIS_REST_TOKEN: z.string(),
   CRON_SECRET: z.string(),
+  YT2ARTICLE_PASSWORD: z.string().min(1),
+  YT2ARTICLE_JWT_SECRET: z.string().min(32),
+  OPENROUTER_API_KEY: z.string().min(1),
 });
 
 /**

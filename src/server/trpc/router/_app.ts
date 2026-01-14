@@ -5,6 +5,7 @@ import { pasteRouter } from "./pastebin";
 import { shortenRouter } from "./shorten";
 import { blipRouter } from "./blip";
 import { translateRouter } from "./translate";
+import { yt2articleRouter } from "./yt2article";
 
 export const appRouter = router({
   bypass: bypassRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
   auth: authRouter,
   blip: blipRouter,
   translate: translateRouter,
+  yt2article: yt2articleRouter,
 });
 
 // export type definition of API

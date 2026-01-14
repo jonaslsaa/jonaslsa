@@ -121,3 +121,18 @@ model DocumentTranslation {
 
   @@index([key, keyType], name: "key_keyType")
 }
+
+model Yt2Article {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  videoId     String   @unique
+  videoTitle  String
+  channelName String
+  transcript  String   @db.LongText
+  article     String   @db.LongText
+  modelUsed   String
+
+  @@index([createdAt])
+}
