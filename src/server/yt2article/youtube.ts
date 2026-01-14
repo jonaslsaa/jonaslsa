@@ -1,4 +1,4 @@
-import { getSubtitles } from "youtube-caption-extractor";
+import { env } from "../../env/server.mjs";
 
 export interface VideoMetadata {
   videoId: string;
@@ -10,6 +10,16 @@ export interface TranscriptSegment {
   text: string;
   offset: number;
   duration: number;
+}
+
+interface TranscriptApiResponse {
+  video_id: string;
+  language: string;
+  transcript: Array<{
+    text: string;
+    start: number;
+    duration: number;
+  }>;
 }
 
 /**
@@ -31,36 +41,42 @@ export function extractVideoId(url: string): string | null {
 }
 
 /**
- * Fetch transcript using youtube-caption-extractor package
+ * Fetch transcript using transcriptapi.com
  */
 export async function fetchTranscript(videoId: string): Promise<TranscriptSegment[]> {
   try {
     console.log(`Fetching transcript for video: ${videoId}`);
 
-    // Try English first, then auto-detect
-    let subtitles = await getSubtitles({ videoID: videoId, lang: "en" });
-    console.log(`English subtitles result: ${subtitles?.length ?? 0} segments`);
+    const response = await fetch(
+      `https://transcriptapi.com/api/v2/youtube/transcript?video_url=${videoId}&format=json`,
+      {
+        headers: {
+          Authorization: `Bearer ${env.TRANSCRIPT_API_KEY}`,
+        },
+      }
+    );
 
-    if (!subtitles || subtitles.length === 0) {
-      // Try without language specification (auto-detect)
-      console.log("Trying auto-detect language...");
-      subtitles = await getSubtitles({ videoID: videoId });
-      console.log(`Auto-detect subtitles result: ${subtitles?.length ?? 0} segments`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Transcript API error: ${response.status} - ${errorText}`);
+      throw new Error(`Transcript API returned ${response.status}`);
     }
 
-    if (!subtitles || subtitles.length === 0) {
-      console.log("No subtitles found for video");
+    const data = (await response.json()) as TranscriptApiResponse;
+    console.log(`Transcript result: ${data.transcript?.length ?? 0} segments`);
+
+    if (!data.transcript || data.transcript.length === 0) {
+      console.log("No transcript found for video");
       return [];
     }
 
-    return subtitles.map((item) => ({
+    return data.transcript.map((item) => ({
       text: item.text,
-      offset: parseFloat(item.start),
-      duration: parseFloat(item.dur),
+      offset: item.start,
+      duration: item.duration,
     }));
   } catch (error) {
     console.error("Transcript fetch error:", error);
-    console.error("Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
     throw new Error(
       `Failed to fetch transcript: ${error instanceof Error ? error.message : "Unknown error"}`
     );

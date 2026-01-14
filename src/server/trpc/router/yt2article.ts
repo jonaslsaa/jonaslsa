@@ -8,7 +8,7 @@ import {
   fetchVideoMetadata,
   formatTranscriptAsText,
 } from "../../yt2article/youtube";
-import { AVAILABLE_MODELS, isValidModelId, DEFAULT_MODEL_ID } from "../../yt2article/models";
+import { AVAILABLE_MODELS, DEFAULT_MODEL_ID } from "../../yt2article/models";
 
 export const yt2articleRouter = router({
   /**
@@ -76,8 +76,8 @@ export const yt2articleRouter = router({
     }),
 
   /**
-   * Prepare video data: extract transcript and metadata
-   * Returns data needed for article generation
+   * Prepare video: validate URL and check cache
+   * Actual transcript fetching happens in getVideoData to avoid duplicate API calls
    */
   prepareVideo: yt2articleProtectedProcedure
     .input(
@@ -87,15 +87,6 @@ export const yt2articleRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      // Validate model ID
-      const modelId = input.modelId || DEFAULT_MODEL_ID;
-      if (!isValidModelId(modelId)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid model selected",
-        });
-      }
-
       // Extract video ID
       const videoId = extractVideoId(input.url);
       if (!videoId) {
@@ -114,37 +105,12 @@ export const yt2articleRouter = router({
         return {
           cached: true as const,
           videoId,
-          title: cached.videoTitle,
-          channelName: cached.channelName,
-          article: cached.article,
-          modelUsed: cached.modelUsed,
-          transcript: cached.transcript, // Include for regeneration
         };
-      }
-
-      // Fetch metadata and transcript in parallel
-      const [metadata, transcriptSegments] = await Promise.all([
-        fetchVideoMetadata(videoId),
-        fetchTranscript(videoId),
-      ]);
-
-      const transcriptText = formatTranscriptAsText(transcriptSegments);
-
-      if (!transcriptText || transcriptText.trim().length === 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This video doesn't have captions/subtitles available. Please try a different video.",
-        });
       }
 
       return {
         cached: false as const,
         videoId,
-        title: metadata.title,
-        channelName: metadata.channelName,
-        transcript: transcriptText,
-        transcriptLength: transcriptText.length,
-        modelId,
       };
     }),
 
