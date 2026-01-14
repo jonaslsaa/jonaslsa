@@ -68,6 +68,41 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 });
 
 /**
- * Protected procedure
+ * Protected procedure (NextAuth)
  **/
 export const protectedProcedure = t.procedure.use(isAuthed);
+
+/**
+ * YT2Article JWT auth middleware
+ */
+import { getJwtFromRequest, verifyJwt } from "../yt2article/auth";
+
+const isYt2ArticleAuthed = t.middleware(({ ctx, next }) => {
+  const token = getJwtFromRequest(ctx.req);
+  if (!token) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Please log in first",
+    });
+  }
+
+  const payload = verifyJwt(token);
+  if (!payload) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid or expired session",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      yt2articleAuth: payload,
+    },
+  });
+});
+
+/**
+ * YT2Article protected procedure (JWT cookie auth)
+ **/
+export const yt2articleProtectedProcedure = t.procedure.use(rateLimiter).use(isYt2ArticleAuthed);

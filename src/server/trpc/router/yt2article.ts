@@ -1,0 +1,273 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { router, publicProcedure, yt2articleProtectedProcedure } from "../trpc";
+import { verifyPassword, createJwt, getJwtFromRequest, verifyJwt } from "../../yt2article/auth";
+import {
+  extractVideoId,
+  fetchTranscript,
+  fetchVideoMetadata,
+  formatTranscriptAsText,
+} from "../../yt2article/youtube";
+import { AVAILABLE_MODELS, DEFAULT_MODEL_ID } from "../../yt2article/models";
+
+export const yt2articleRouter = router({
+  /**
+   * Login with password, returns JWT token
+   */
+  login: publicProcedure
+    .input(z.object({ password: z.string() }))
+    .mutation(async ({ input }) => {
+      if (!verifyPassword(input.password)) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid password",
+        });
+      }
+
+      const token = createJwt();
+      return { success: true, token };
+    }),
+
+  /**
+   * Check if current session is authenticated
+   */
+  checkAuth: publicProcedure.query(async ({ ctx }) => {
+    const token = getJwtFromRequest(ctx.req);
+    if (!token) {
+      return { authenticated: false };
+    }
+
+    const payload = verifyJwt(token);
+    return { authenticated: payload !== null };
+  }),
+
+  /**
+   * Get available models for selection
+   */
+  getModels: publicProcedure.query(() => {
+    return { models: AVAILABLE_MODELS, defaultModelId: DEFAULT_MODEL_ID };
+  }),
+
+  /**
+   * Check if a cached article exists for a video
+   */
+  getCached: yt2articleProtectedProcedure
+    .input(z.object({ videoId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const cached = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId: input.videoId },
+      });
+
+      if (!cached) {
+        return { found: false as const };
+      }
+
+      return {
+        found: true as const,
+        article: cached.article,
+        videoTitle: cached.videoTitle,
+        channelName: cached.channelName,
+        modelUsed: cached.modelUsed,
+        createdAt: cached.createdAt,
+        inputTokens: cached.inputTokens,
+        outputTokens: cached.outputTokens,
+        cost: cached.cost,
+      };
+    }),
+
+  /**
+   * Prepare video: validate URL and check cache
+   * Actual transcript fetching happens in getVideoData to avoid duplicate API calls
+   */
+  prepareVideo: yt2articleProtectedProcedure
+    .input(
+      z.object({
+        url: z.string(),
+        modelId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Extract video ID
+      const videoId = extractVideoId(input.url);
+      if (!videoId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid YouTube URL",
+        });
+      }
+
+      // Check cache first
+      const cached = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId },
+      });
+
+      if (cached) {
+        return {
+          cached: true as const,
+          videoId,
+        };
+      }
+
+      return {
+        cached: false as const,
+        videoId,
+      };
+    }),
+
+  /**
+   * Get a public article by video ID (no auth required for viewing)
+   */
+  getPublicArticle: publicProcedure
+    .input(z.object({ videoId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const article = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId: input.videoId },
+      });
+
+      if (!article) {
+        return { found: false as const };
+      }
+
+      return {
+        found: true as const,
+        videoId: article.videoId,
+        videoTitle: article.videoTitle,
+        channelName: article.channelName,
+        article: article.article,
+        modelUsed: article.modelUsed,
+        createdAt: article.createdAt,
+        inputTokens: article.inputTokens,
+        outputTokens: article.outputTokens,
+        cost: article.cost,
+      };
+    }),
+
+  /**
+   * Get transcript for a video (for regeneration when transcript is missing)
+   */
+  getTranscript: yt2articleProtectedProcedure
+    .input(z.object({ videoId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      // First check if we have it in the database
+      const cached = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId: input.videoId },
+        select: { transcript: true },
+      });
+
+      if (cached?.transcript && cached.transcript.length > 0) {
+        return { transcript: cached.transcript };
+      }
+
+      // Fetch fresh from YouTube
+      const transcriptSegments = await fetchTranscript(input.videoId);
+      const transcriptText = formatTranscriptAsText(transcriptSegments);
+
+      if (!transcriptText || transcriptText.trim().length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Could not fetch transcript for this video",
+        });
+      }
+
+      return { transcript: transcriptText };
+    }),
+
+  /**
+   * Get video data by videoId (for generation page direct navigation)
+   * Returns cached article if exists, otherwise fetches fresh transcript/metadata
+   */
+  getVideoData: yt2articleProtectedProcedure
+    .input(
+      z.object({
+        videoId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Check cache first
+      const cached = await ctx.prisma.yt2Article.findUnique({
+        where: { videoId: input.videoId },
+      });
+
+      if (cached) {
+        return {
+          cached: true as const,
+          videoId: input.videoId,
+          title: cached.videoTitle,
+          channelName: cached.channelName,
+          article: cached.article,
+          modelUsed: cached.modelUsed,
+          transcript: cached.transcript,
+          inputTokens: cached.inputTokens,
+          outputTokens: cached.outputTokens,
+          cost: cached.cost,
+        };
+      }
+
+      // Fetch metadata and transcript in parallel
+      const [metadata, transcriptSegments] = await Promise.all([
+        fetchVideoMetadata(input.videoId),
+        fetchTranscript(input.videoId),
+      ]);
+
+      const transcriptText = formatTranscriptAsText(transcriptSegments);
+
+      if (!transcriptText || transcriptText.trim().length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This video doesn't have captions/subtitles available.",
+        });
+      }
+
+      return {
+        cached: false as const,
+        videoId: input.videoId,
+        title: metadata.title,
+        channelName: metadata.channelName,
+        transcript: transcriptText,
+      };
+    }),
+
+  /**
+   * Save generated article to database
+   */
+  saveArticle: yt2articleProtectedProcedure
+    .input(
+      z.object({
+        videoId: z.string(),
+        videoTitle: z.string(),
+        channelName: z.string(),
+        transcript: z.string(),
+        article: z.string(),
+        modelUsed: z.string(),
+        inputTokens: z.number().nullable().optional(),
+        outputTokens: z.number().nullable().optional(),
+        cost: z.number().nullable().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Upsert to handle race conditions
+      const saved = await ctx.prisma.yt2Article.upsert({
+        where: { videoId: input.videoId },
+        create: {
+          videoId: input.videoId,
+          videoTitle: input.videoTitle,
+          channelName: input.channelName,
+          transcript: input.transcript,
+          article: input.article,
+          modelUsed: input.modelUsed,
+          inputTokens: input.inputTokens ?? null,
+          outputTokens: input.outputTokens ?? null,
+          cost: input.cost ?? null,
+        },
+        update: {
+          article: input.article,
+          modelUsed: input.modelUsed,
+          inputTokens: input.inputTokens ?? null,
+          outputTokens: input.outputTokens ?? null,
+          cost: input.cost ?? null,
+        },
+      });
+
+      return { success: true, id: saved.id };
+    }),
+});
