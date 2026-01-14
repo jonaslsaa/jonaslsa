@@ -35,7 +35,7 @@ export const AVAILABLE_MODELS: AIModel[] = [
     name: "Kimi K2 Thinking",
     provider: "Moonshot AI",
   }
-];
+] as const;
 
 export function getModelById(id: string): AIModel | undefined {
   return AVAILABLE_MODELS.find((model) => model.id === id);
@@ -45,4 +45,4 @@ export function isValidModelId(id: string): boolean {
   return AVAILABLE_MODELS.some((model) => model.id === id);
 }
 
-export const DEFAULT_MODEL_ID = "google/gemini-3-flash-preview";
+export const DEFAULT_MODEL_ID = AVAILABLE_MODELS[3].id; // DeepSeek V3.2
