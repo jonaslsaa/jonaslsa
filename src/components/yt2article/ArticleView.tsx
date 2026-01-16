@@ -71,10 +71,10 @@ const ArticleView: FC<ArticleViewProps> = ({
     <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
       {/* Header with controls */}
       <div
-        className={`sticky top-0 z-10 border-b bg-opacity-90 backdrop-blur-sm ${borderClass} ${bgClass}`}
+        className={`sticky top-0 z-10 w-full border-b bg-opacity-90 backdrop-blur-sm ${borderClass} ${bgClass}`}
       >
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-wrap items-center gap-3">
             <a
               href={`https://www.youtube.com/watch?v=${videoId}`}
               target="_blank"
@@ -89,12 +89,14 @@ const ArticleView: FC<ArticleViewProps> = ({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs ${mutedClass}`}>{modelUsed}</span>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <span className={`text-xs ${mutedClass} max-w-[10rem] truncate`} title={modelUsed}>
+              {modelUsed}
+            </span>
             {showRegenerateButton && !isStreaming && onRegenerateClick && (
               <button
                 onClick={onRegenerateClick}
-                className={`rounded-md px-3 py-2 text-sm transition-colors ${
+                className={`rounded-md px-2 py-1.5 text-xs transition-colors sm:px-3 sm:py-2 sm:text-sm ${
                   isDarkMode
                     ? "bg-slate-800 text-white hover:bg-slate-700"
                     : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -106,7 +108,7 @@ const ArticleView: FC<ArticleViewProps> = ({
             {showShareButton && !isStreaming && (
               <button
                 onClick={handleCopyLink}
-                className={`rounded-md px-3 py-2 text-sm transition-colors ${
+                className={`rounded-md px-2 py-1.5 text-xs transition-colors sm:px-3 sm:py-2 sm:text-sm ${
                   isDarkMode
                     ? "bg-slate-800 text-white hover:bg-slate-700"
                     : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -117,7 +119,7 @@ const ArticleView: FC<ArticleViewProps> = ({
             )}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`rounded-md px-3 py-2 text-sm transition-colors ${
+              className={`rounded-md px-2 py-1.5 text-xs transition-colors sm:px-3 sm:py-2 sm:text-sm ${
                 isDarkMode
                   ? "bg-slate-800 text-white hover:bg-slate-700"
                   : "bg-gray-200 text-gray-800 hover:bg-gray-300"
