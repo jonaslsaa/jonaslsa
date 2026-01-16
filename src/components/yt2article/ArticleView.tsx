@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { FC } from "react";
 import { Streamdown } from "streamdown";
 
@@ -39,6 +39,18 @@ const ArticleView: FC<ArticleViewProps> = ({
   const shareUrl = typeof window !== "undefined"
     ? `${window.location.origin}/yt2article/view/${videoId}`
     : "";
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.style.setProperty("--app-bg", isDarkMode ? "#111827" : "#ffffff");
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    return () => {
+      document.documentElement.style.removeProperty("--app-bg");
+    };
+  }, []);
 
   const handleCopyLink = async () => {
     try {

@@ -3,13 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --app-bg: #111827;
+  }
+
   html {
-    background-color: #111827;
+    background-color: var(--app-bg);
   }
 
   body {
     min-height: 100%;
-    background-color: #111827;
+    background-color: var(--app-bg);
     overflow-x: hidden;
   }
 }
