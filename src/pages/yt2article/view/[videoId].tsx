@@ -1,74 +1,75 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import { trpc } from "../../../utils/trpc";
 import ArticleView from "../../../components/yt2article/ArticleView";
+import { prisma } from "../../../server/db/client";
 
-const ViewArticle: NextPage = () => {
-  const router = useRouter();
-  const { videoId } = router.query;
+type ServerProps = {
+  videoId: string;
+  videoTitle: string;
+  channelName: string;
+  article: string;
+  modelUsed: string;
+  createdAt: string;
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
+};
 
-  const { data, isLoading, error } = trpc.yt2article.getPublicArticle.useQuery(
-    { videoId: videoId as string },
-    { enabled: !!videoId }
-  );
-
-  if (isLoading || !videoId) {
-    return (
-      <>
-        <Head>
-          <title>Loading... | YT2Article</title>
-        </Head>
-        <main className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
-          <p className="text-gray-400">Loading article...</p>
-        </main>
-      </>
-    );
-  }
-
-  if (error || !data?.found) {
-    return (
-      <>
-        <Head>
-          <title>Article Not Found | YT2Article</title>
-        </Head>
-        <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white">
-          <h1 className="mb-4 text-2xl font-bold">Article Not Found</h1>
-          <p className="mb-6 text-gray-400">
-            This article hasn&apos;t been generated yet or doesn&apos;t exist.
-          </p>
-          <a
-            href="/yt2article"
-            className="rounded-md bg-sky-600 px-6 py-3 text-white transition-colors hover:bg-sky-700"
-          >
-            Generate an Article
-          </a>
-        </main>
-      </>
-    );
-  }
-
+const ViewArticle: NextPage<ServerProps> = ({
+  videoId,
+  videoTitle,
+  channelName,
+  article,
+  modelUsed,
+  inputTokens,
+  outputTokens,
+  cost,
+}) => {
   return (
     <>
       <Head>
-        <title>{data.videoTitle} | YT2Article</title>
-        <meta name="description" content={`Article generated from: ${data.videoTitle}`} />
+        <title>{videoTitle} | YT2Article</title>
+        <meta name="description" content={`Article generated from: ${videoTitle}`} />
       </Head>
       <ArticleView
-        content={data.article}
-        videoTitle={data.videoTitle}
-        channelName={data.channelName}
-        videoId={data.videoId}
-        modelUsed={data.modelUsed}
+        content={article}
+        videoTitle={videoTitle}
+        channelName={channelName}
+        videoId={videoId}
+        modelUsed={modelUsed}
         isStreaming={false}
         isCached={true}
         showShareButton={true}
-        inputTokens={data.inputTokens}
-        outputTokens={data.outputTokens}
-        cost={data.cost}
+        inputTokens={inputTokens}
+        outputTokens={outputTokens}
+        cost={cost}
       />
     </>
   );
 };
+
+export async function getServerSideProps(context: { query: { videoId: string } }) {
+  const article = await prisma.yt2Article.findUnique({
+    where: { videoId: context.query.videoId }
+  });
+
+  if (!article) {
+    return { notFound: true };
+  }
+
+  return {
+    props: {
+      videoId: article.videoId,
+      videoTitle: article.videoTitle,
+      channelName: article.channelName,
+      article: article.article,
+      modelUsed: article.modelUsed,
+      createdAt: article.createdAt.toISOString(),
+      inputTokens: article.inputTokens,
+      outputTokens: article.outputTokens,
+      cost: article.cost,
+    }
+  };
+}
 
 export default ViewArticle;
