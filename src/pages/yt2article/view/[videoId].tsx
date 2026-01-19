@@ -28,7 +28,7 @@ const ViewArticle: NextPage<ServerProps> = ({
   return (
     <>
       <Head>
-        <title>{videoTitle} | YT2Article</title>
+        <title>{`${videoTitle} | YT2Article`}</title>
         <meta name="description" content={`Article generated from: ${videoTitle}`} />
       </Head>
       <ArticleView
