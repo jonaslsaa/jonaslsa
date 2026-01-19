@@ -11,11 +11,6 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "Google",
   },
   {
-    id: "google/gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    provider: "Google",
-  },
-  {
     id: "z-ai/glm-4.7",
     name: "GLM 4.7",
     provider: "Z-AI",
