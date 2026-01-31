@@ -22,12 +22,12 @@ export const AVAILABLE_MODELS: AIModel[] = [
   },
   {
     id: "moonshotai/kimi-k2-0905",
-    name: "Kimi K2",
+    name: "Kimi K2 Instant",
     provider: "Moonshot AI",
   },
   {
-    id: "moonshotai/kimi-k2-thinking",
-    name: "Kimi K2 Thinking",
+    id: "moonshotai/kimi-k2.5",
+    name: "Kimi K2.5",
     provider: "Moonshot AI",
   }
 ] as const;
