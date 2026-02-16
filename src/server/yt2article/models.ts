@@ -11,8 +11,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "Google",
   },
   {
-    id: "z-ai/glm-4.7",
-    name: "GLM 4.7",
+    id: "z-ai/glm-5",
+    name: "GLM 5",
     provider: "Z-AI",
   },
   {
