@@ -11,8 +11,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "Google",
   },
   {
-    id: "z-ai/glm-5",
-    name: "GLM 5",
+    id: "z-ai/glm-5.1",
+    name: "GLM 5.1",
     provider: "Z-AI",
   },
   {
@@ -21,14 +21,19 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "DeepSeek",
   },
   {
-    id: "moonshotai/kimi-k2-0905",
-    name: "Kimi K2 Instant",
-    provider: "Moonshot AI",
+    id: "anthropic/claude-sonnet-4.6",
+    name: "Sonnet 4.6",
+    provider: "Anthropic",
   },
   {
     id: "moonshotai/kimi-k2.5",
     name: "Kimi K2.5",
     provider: "Moonshot AI",
+  },
+  {
+    id: "openai/gpt-5.4",
+    name: "GPT 5.4",
+    provider: "OpenAI",
   }
 ] as const;
 
