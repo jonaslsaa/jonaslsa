@@ -26,8 +26,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "Anthropic",
   },
   {
-    id: "moonshotai/kimi-k2.5",
-    name: "Kimi K2.5",
+    id: "moonshotai/kimi-k2.6",
+    name: "Kimi K2.6",
     provider: "Moonshot AI",
   },
   {
