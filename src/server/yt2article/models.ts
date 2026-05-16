@@ -16,8 +16,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "Z-AI",
   },
   {
-    id: "deepseek/deepseek-v3.2",
-    name: "DeepSeek V3.2",
+    id: "deepseek/deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
     provider: "DeepSeek",
   },
   {
@@ -31,8 +31,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "Moonshot AI",
   },
   {
-    id: "openai/gpt-5.4",
-    name: "GPT 5.4",
+    id: "openai/gpt-5.5",
+    name: "GPT 5.5",
     provider: "OpenAI",
   }
 ] as const;
