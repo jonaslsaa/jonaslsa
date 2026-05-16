@@ -1,4 +1,4 @@
-import { ProxyAgent } from "undici";
+import { ProxyAgent, fetch as undiciFetch } from "undici";
 import { YoutubeTranscript } from "youtube-transcript";
 import { env } from "../../env/server.mjs";
 
@@ -32,10 +32,10 @@ const fetchYouTubeTranscript: typeof fetch = (input, init) => {
     return fetch(input, init);
   }
 
-  return fetch(input, {
+  return undiciFetch(input, {
     ...init,
     dispatcher: proxyAgent,
-  } as RequestInit);
+  }) as unknown as ReturnType<typeof fetch>;
 };
 
 /**
