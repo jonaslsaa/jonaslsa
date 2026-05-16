@@ -29,6 +29,7 @@ export const serverSchema = z.object({
   YT2ARTICLE_PASSWORD: z.string().min(1),
   YT2ARTICLE_JWT_SECRET: z.string().min(32),
   OPENROUTER_API_KEY: z.string().min(1),
+  YOUTUBE_TRANSCRIPT_PROXY_URL: z.string().url().optional(),
 });
 
 /**

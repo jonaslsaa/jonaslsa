@@ -1,4 +1,6 @@
+import { ProxyAgent } from "undici";
 import { YoutubeTranscript } from "youtube-transcript";
+import { env } from "../../env/server.mjs";
 
 export interface VideoMetadata {
   videoId: string;
@@ -11,6 +13,30 @@ export interface TranscriptSegment {
   offset: number;
   duration: number;
 }
+
+let transcriptProxyAgent: ProxyAgent | null = null;
+
+function getTranscriptProxyAgent(): ProxyAgent | undefined {
+  if (!env.YOUTUBE_TRANSCRIPT_PROXY_URL) {
+    return undefined;
+  }
+
+  transcriptProxyAgent ??= new ProxyAgent(env.YOUTUBE_TRANSCRIPT_PROXY_URL);
+  return transcriptProxyAgent;
+}
+
+const fetchYouTubeTranscript: typeof fetch = (input, init) => {
+  const proxyAgent = getTranscriptProxyAgent();
+
+  if (!proxyAgent) {
+    return fetch(input, init);
+  }
+
+  return fetch(input, {
+    ...init,
+    dispatcher: proxyAgent,
+  } as RequestInit);
+};
 
 /**
  * Extract video ID from various YouTube URL formats
@@ -37,7 +63,9 @@ export async function fetchTranscript(videoId: string): Promise<TranscriptSegmen
   try {
     console.log(`Fetching transcript for video: ${videoId}`);
 
-    const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+    const transcript = await YoutubeTranscript.fetchTranscript(videoId, {
+      fetch: fetchYouTubeTranscript,
+    });
     console.log(`Transcript result: ${transcript.length} segments`);
 
     if (transcript.length === 0) {
