@@ -1,4 +1,4 @@
-import { env } from "../../env/server.mjs";
+import { YoutubeTranscript } from "youtube-transcript";
 
 export interface VideoMetadata {
   videoId: string;
@@ -10,16 +10,6 @@ export interface TranscriptSegment {
   text: string;
   offset: number;
   duration: number;
-}
-
-interface TranscriptApiResponse {
-  video_id: string;
-  language: string;
-  transcript: Array<{
-    text: string;
-    start: number;
-    duration: number;
-  }>;
 }
 
 /**
@@ -41,38 +31,23 @@ export function extractVideoId(url: string): string | null {
 }
 
 /**
- * Fetch transcript using transcriptapi.com
+ * Fetch transcript directly from YouTube captions.
  */
 export async function fetchTranscript(videoId: string): Promise<TranscriptSegment[]> {
   try {
     console.log(`Fetching transcript for video: ${videoId}`);
 
-    const response = await fetch(
-      `https://transcriptapi.com/api/v2/youtube/transcript?video_url=${videoId}&format=json`,
-      {
-        headers: {
-          Authorization: `Bearer ${env.TRANSCRIPT_API_KEY}`,
-        },
-      }
-    );
+    const transcript = await YoutubeTranscript.fetchTranscript(videoId);
+    console.log(`Transcript result: ${transcript.length} segments`);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Transcript API error: ${response.status} - ${errorText}`);
-      throw new Error(`Transcript API returned ${response.status}`);
-    }
-
-    const data = (await response.json()) as TranscriptApiResponse;
-    console.log(`Transcript result: ${data.transcript?.length ?? 0} segments`);
-
-    if (!data.transcript || data.transcript.length === 0) {
+    if (transcript.length === 0) {
       console.log("No transcript found for video");
       return [];
     }
 
-    return data.transcript.map((item) => ({
+    return transcript.map((item) => ({
       text: item.text,
-      offset: item.start,
+      offset: item.offset,
       duration: item.duration,
     }));
   } catch (error) {
