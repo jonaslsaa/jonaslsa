@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { streamText } from "ai";
+import { APICallError, streamText } from "ai";
 import { getJwtFromRequest, verifyJwt } from "../../../server/yt2article/auth";
 import { isValidModelId, DEFAULT_MODEL_ID } from "../../../server/yt2article/models";
 import { env } from "../../../env/server.mjs";
@@ -22,6 +22,46 @@ interface StreamRequestBody {
   channel: string;
   transcript: string;
   modelId?: string;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (APICallError.isInstance(error)) {
+    const providerMessage = getProviderErrorMessage(error.responseBody);
+    if (providerMessage) {
+      return providerMessage;
+    }
+
+    return error.statusCode
+      ? `AI provider request failed with status ${error.statusCode}: ${error.message}`
+      : error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Generation failed";
+}
+
+function getStatusCode(error: unknown): number {
+  if (APICallError.isInstance(error) && error.statusCode) {
+    return error.statusCode;
+  }
+
+  return 500;
+}
+
+function getProviderErrorMessage(responseBody: string | undefined): string | null {
+  if (!responseBody) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(responseBody) as { error?: { message?: unknown } };
+    return typeof parsed.error?.message === "string" ? parsed.error.message : null;
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -53,7 +93,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Validate and get model
-  const selectedModelId = modelId && isValidModelId(modelId) ? modelId : DEFAULT_MODEL_ID;
+  if (modelId && !isValidModelId(modelId)) {
+    return res.status(400).json({
+      error: `Unsupported model: ${modelId}`,
+    });
+  }
+
+  const selectedModelId = modelId || DEFAULT_MODEL_ID;
 
   // Truncate transcript if too long (OpenRouter models have context limits)
   const maxTranscriptLength = 100000;
@@ -87,8 +133,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Connection", "keep-alive");
     res.setHeader("X-Accel-Buffering", "no");
 
-    for await (const chunk of result.textStream) {
-      res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+    for await (const part of result.fullStream) {
+      if (part.type === "text-delta") {
+        res.write(`data: ${JSON.stringify({ content: part.text })}\n\n`);
+        continue;
+      }
+
+      if (part.type === "error") {
+        throw part.error;
+      }
     }
 
     // Get usage data after streaming completes
@@ -112,16 +165,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.end();
   } catch (error) {
     console.error("Streaming error:", error);
+    const message = getErrorMessage(error);
+
     // If headers haven't been sent yet, we can return a proper error response
     if (!res.headersSent) {
-      return res.status(500).json({
-        error: error instanceof Error ? error.message : "Generation failed",
+      return res.status(getStatusCode(error)).json({
+        error: message,
         details: error instanceof Error ? error.stack : undefined
       });
     }
     // If headers were already sent, try to send error via SSE
     res.write(
-      `data: ${JSON.stringify({ error: error instanceof Error ? error.message : "Generation failed" })}\n\n`
+      `data: ${JSON.stringify({ error: message })}\n\n`
     );
     res.end();
   }

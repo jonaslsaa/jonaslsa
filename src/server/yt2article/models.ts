@@ -45,4 +45,4 @@ export function isValidModelId(id: string): boolean {
   return AVAILABLE_MODELS.some((model) => model.id === id);
 }
 
-export const DEFAULT_MODEL_ID = AVAILABLE_MODELS[2].id; // DeepSeek V3.2
+export const DEFAULT_MODEL_ID = "deepseek/deepseek-v4-pro";

@@ -10,6 +10,32 @@ import {
 } from "../../yt2article/youtube";
 import { AVAILABLE_MODELS, DEFAULT_MODEL_ID } from "../../yt2article/models";
 
+async function withDbConnectionRetry<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isClosedConnectionError(error)) {
+      throw error;
+    }
+
+    console.warn("Retrying yt2article database operation after closed connection");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return operation();
+  }
+}
+
+function isClosedConnectionError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const errorWithDetails = error as { code?: string; message?: string };
+  return (
+    errorWithDetails.code === "P1017" ||
+    errorWithDetails.message?.includes("Server has closed the connection.") === true
+  );
+}
+
 export const yt2articleRouter = router({
   /**
    * Login with password, returns JWT token
@@ -54,9 +80,11 @@ export const yt2articleRouter = router({
   getCached: yt2articleProtectedProcedure
     .input(z.object({ videoId: z.string() }))
     .query(async ({ input, ctx }) => {
-      const cached = await ctx.prisma.yt2Article.findUnique({
-        where: { videoId: input.videoId },
-      });
+      const cached = await withDbConnectionRetry(() =>
+        ctx.prisma.yt2Article.findUnique({
+          where: { videoId: input.videoId },
+        })
+      );
 
       if (!cached) {
         return { found: false as const };
@@ -97,9 +125,11 @@ export const yt2articleRouter = router({
       }
 
       // Check cache first
-      const cached = await ctx.prisma.yt2Article.findUnique({
-        where: { videoId },
-      });
+      const cached = await withDbConnectionRetry(() =>
+        ctx.prisma.yt2Article.findUnique({
+          where: { videoId },
+        })
+      );
 
       if (cached) {
         return {
@@ -120,9 +150,11 @@ export const yt2articleRouter = router({
   getPublicArticle: publicProcedure
     .input(z.object({ videoId: z.string() }))
     .query(async ({ input, ctx }) => {
-      const article = await ctx.prisma.yt2Article.findUnique({
-        where: { videoId: input.videoId },
-      });
+      const article = await withDbConnectionRetry(() =>
+        ctx.prisma.yt2Article.findUnique({
+          where: { videoId: input.videoId },
+        })
+      );
 
       if (!article) {
         return { found: false as const };
@@ -149,10 +181,12 @@ export const yt2articleRouter = router({
     .input(z.object({ videoId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       // First check if we have it in the database
-      const cached = await ctx.prisma.yt2Article.findUnique({
-        where: { videoId: input.videoId },
-        select: { transcript: true },
-      });
+      const cached = await withDbConnectionRetry(() =>
+        ctx.prisma.yt2Article.findUnique({
+          where: { videoId: input.videoId },
+          select: { transcript: true },
+        })
+      );
 
       if (cached?.transcript && cached.transcript.length > 0) {
         return { transcript: cached.transcript };
@@ -184,9 +218,11 @@ export const yt2articleRouter = router({
     )
     .query(async ({ input, ctx }) => {
       // Check cache first
-      const cached = await ctx.prisma.yt2Article.findUnique({
-        where: { videoId: input.videoId },
-      });
+      const cached = await withDbConnectionRetry(() =>
+        ctx.prisma.yt2Article.findUnique({
+          where: { videoId: input.videoId },
+        })
+      );
 
       if (cached) {
         return {
@@ -246,27 +282,29 @@ export const yt2articleRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       // Upsert to handle race conditions
-      const saved = await ctx.prisma.yt2Article.upsert({
-        where: { videoId: input.videoId },
-        create: {
-          videoId: input.videoId,
-          videoTitle: input.videoTitle,
-          channelName: input.channelName,
-          transcript: input.transcript,
-          article: input.article,
-          modelUsed: input.modelUsed,
-          inputTokens: input.inputTokens ?? null,
-          outputTokens: input.outputTokens ?? null,
-          cost: input.cost ?? null,
-        },
-        update: {
-          article: input.article,
-          modelUsed: input.modelUsed,
-          inputTokens: input.inputTokens ?? null,
-          outputTokens: input.outputTokens ?? null,
-          cost: input.cost ?? null,
-        },
-      });
+      const saved = await withDbConnectionRetry(() =>
+        ctx.prisma.yt2Article.upsert({
+          where: { videoId: input.videoId },
+          create: {
+            videoId: input.videoId,
+            videoTitle: input.videoTitle,
+            channelName: input.channelName,
+            transcript: input.transcript,
+            article: input.article,
+            modelUsed: input.modelUsed,
+            inputTokens: input.inputTokens ?? null,
+            outputTokens: input.outputTokens ?? null,
+            cost: input.cost ?? null,
+          },
+          update: {
+            article: input.article,
+            modelUsed: input.modelUsed,
+            inputTokens: input.inputTokens ?? null,
+            outputTokens: input.outputTokens ?? null,
+            cost: input.cost ?? null,
+          },
+        })
+      );
 
       return { success: true, id: saved.id };
     }),
