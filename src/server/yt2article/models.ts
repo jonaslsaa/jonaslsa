@@ -12,7 +12,7 @@ export const AVAILABLE_MODELS: AIModel[] = [
   },
   {
     id: "z-ai/glm-5.2",
-    name: "GLM 5.1",
+    name: "GLM 5.2",
     provider: "Z-AI",
   },
   {
