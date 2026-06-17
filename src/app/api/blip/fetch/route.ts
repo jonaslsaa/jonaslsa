@@ -336,7 +336,7 @@ export async function POST(req: NextRequest) {
       countDisabled,
       countUpdated,
     };
-    console.log("GET /api/fetch:", stats);
+    console.log("POST /api/blip/fetch:", stats);
 
     return NextResponse.json({
       success: true,
@@ -346,7 +346,7 @@ export async function POST(req: NextRequest) {
       finishedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error in GET /api/fetch:", error);
+    console.error("Error in POST /api/blip/fetch:", error);
     return new Response(JSON.stringify({ success: false, error: String(error) }), {
       status: 500,
     });

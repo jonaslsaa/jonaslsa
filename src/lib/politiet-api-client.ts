@@ -14,7 +14,7 @@ const messageThreadSchema = z.object({
   id: z.string(),
   district: z.string(),
   districtId: z.number(),
-  summary: z.string(),
+  summary: z.string().optional().default(''),
   category: z.string(),
   municipality: z.string(),
   area: z.string(),
@@ -37,11 +37,10 @@ export type MessageThread = z.infer<typeof messageThreadSchema>;
 export type ThreadMessage = z.infer<typeof messageSchema>;
 
 export class PolitietApiClient {
-  private readonly baseUrl = 'https://politiloggen-vis-frontend.bks-prod.politiet.no/api/messagethread';
+  private readonly baseUrl = 'https://www.politiet.no/politiloggen/api';
   private readonly headers = {
     'accept': 'application/json',
-    'content-type': 'application/json; charset=UTF-8',
-    'origin': 'https://www.politiet.no',
+    'content-type': 'application/json',
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
   };
 
@@ -52,22 +51,19 @@ export class PolitietApiClient {
    * @returns Validated API response
    */
   async getTimeRangedData(from: Date, to: Date, take = 512): Promise<ApiResponse> {
-    const body = JSON.stringify({
-      sortByEnum: 'LastMessageOn',
-      sortByAsc: false,
-      timeSpanType: 'Custom',
-      dateTimeFrom: from.toISOString(),
-      dateTimeTo: to.toISOString(),
-      skip: 0,
-      take: take,
-      category: [],
-    });
+    const url = new URL(`${this.baseUrl}/messagethreads`);
+    url.searchParams.set('skip', '0');
+    url.searchParams.set('take', String(take));
+    url.searchParams.set('sortByEnum', 'LastMessageOn');
+    url.searchParams.set('sortByAsc', 'false');
+    url.searchParams.set('timeSpanType', 'Custom');
+    url.searchParams.set('dateTimeFrom', from.toISOString());
+    url.searchParams.set('dateTimeTo', to.toISOString());
 
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
+      const response = await fetch(url.toString(), {
+        method: 'GET',
         headers: this.headers,
-        body,
       });
 
       if (!response.ok) {
@@ -90,34 +86,30 @@ export class PolitietApiClient {
     return this.getTimeRangedData(from, new Date());
   }
 
-    /**
+  /**
    * Fetch a specific message thread by its ID
    * @param id Thread ID to fetch
    * @returns Validated message thread
    */
-    async getThreadById(id: string): Promise<MessageThread> {
-      const url = new URL(`${this.baseUrl}/getbyid`);
-      url.searchParams.set('id', id);
-  
-      try {
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            ...this.headers,
-            'accept': '*/*', // Wider accept header for this endpoint
-          },
-        });
-  
-        if (!response.ok) {
-          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-        }
-  
-        const data = await response.json();
-        return messageThreadResponseSchema.parse(data);
-      } catch (error) {
-        throw new Error(`Failed to fetch thread ${id}: ${error instanceof Error ? error.message : String(error)}`);
+  async getThreadById(id: string): Promise<MessageThread> {
+    const url = new URL(`${this.baseUrl}/messagethread/${id}`);
+
+    try {
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
+
+      const data = await response.json();
+      return messageThreadResponseSchema.parse(data);
+    } catch (error) {
+      throw new Error(`Failed to fetch thread ${id}: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
 }
 
 // Usage example:
