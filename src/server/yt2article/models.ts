@@ -6,12 +6,12 @@ export interface AIModel {
 
 export const AVAILABLE_MODELS: AIModel[] = [
   {
-    id: "google/gemini-3-flash-preview",
-    name: "Gemini 3 Flash",
+    id: "google/gemini-3.5-flash",
+    name: "Gemini 3.5 Flash",
     provider: "Google",
   },
   {
-    id: "z-ai/glm-5.1",
+    id: "z-ai/glm-5.2",
     name: "GLM 5.1",
     provider: "Z-AI",
   },
