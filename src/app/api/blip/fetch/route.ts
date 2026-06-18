@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
+import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { env } from "../../../../env/server.mjs";
 import { PrismaClient } from '@prisma/client';
@@ -55,17 +55,18 @@ Infer from the report the following:
 - Summary: A short summary, or "N/A" if not applicable.
 `.trim();
 
-  // NOTE: "gpt-4o-mini" is a placeholder from your snippet
-  const completion = await openai.beta.chat.completions.parse({
+  const response = await openai.responses.parse({
     model: "gpt-4o-mini",
-    messages: [
+    input: [
       { role: "system", content: systemPrompt },
       { role: "user", content: textForGPT },
     ],
-    response_format: zodResponseFormat(IncidentSchema, "incident"),
+    text: {
+      format: zodTextFormat(IncidentSchema, "incident"),
+    },
   });
 
-  return completion.choices[0].message.parsed; // { location, type, severity, summary }
+  return response.output_parsed; // { location, type, severity, summary }
 }
 
 // ------------------------------------------------------------------
