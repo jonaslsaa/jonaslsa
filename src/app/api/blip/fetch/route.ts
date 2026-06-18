@@ -73,6 +73,7 @@ async function parseIncident(thread: MessageThread) {
 Extract information from this police incident report/messages. MUST be written in English.
 Infer from the report the following:
 - Location: The location of the incident in a clear and disambiguated way (will be feed to Google Maps, so try to infer the best location to present). Format: "Primary, secondary, [tertiary]". Example: "Trafikkontroll på Spongdalsvegen ved Berg (Trondheim municipality)" -> "Berg, Spongdalsvegen, Trondheim"
+  Prefer the police-provided area and municipality when they are available. Keep road numbers, named roads, neighborhoods, landmarks, and municipality names, but do not add police district names, county names, or "Norway" unless the report itself needs that to avoid ambiguity.
 - Type: The type of incident (short phrase, e.g. "Traffic obstruction", "Fire", etc.)
 - Severity: The severity (LOW/MED/HIGH)
 - Summary: A short summary, or "N/A" if not applicable.
@@ -187,14 +188,22 @@ function isConfidentMapboxMatch(feature: MapboxFeature, query: string, thread: M
   const municipality = normalizeLocationText(thread.municipality);
   const primary = normalizeLocationText(query.split(",")[0] ?? "");
   const featureType = feature.properties?.feature_type ?? "";
+  const hasArea = hasLocationPhrase(featureText, area);
+  const hasMunicipality = hasLocationPhrase(featureText, municipality);
+  const hasPrimary = hasLocationPhrase(featureText, primary);
+  const isStreetOrAddress = featureType === "street" || featureType === "address";
 
   if (!featureText || !primary) return false;
-  if (hasLocationPhrase(featureText, area)) return true;
-  if (hasLocationPhrase(featureText, primary) && primary !== municipality) return true;
-  if (primary === municipality && hasLocationPhrase(featureText, municipality)) return true;
 
-  const isStreetOrAddress = featureType === "street" || featureType === "address";
-  if (isStreetOrAddress && isRoadLikeLocation(query) && featureName === primary) {
+  if (isStreetOrAddress) {
+    return hasMunicipality && (hasArea || hasPrimary || featureName === primary || primary === municipality);
+  }
+
+  if (hasArea) return true;
+  if (hasPrimary && primary !== municipality) return true;
+  if (primary === municipality && hasMunicipality) return true;
+
+  if (isRoadLikeLocation(query) && hasMunicipality && featureName === primary) {
     return true;
   }
 
