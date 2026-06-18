@@ -171,7 +171,7 @@ const DropdownPanel: FC<DropdownPanelProps> = ({filters, setFilters, severityFil
               <p className='text-gray-300 font-thin'>
                 This project collects data from <Link className='text-blue-200 transition-colors hover:text-blue-300' href="https://www.politiet.no/politiloggen/">Norwegian police logs</Link>, parses them using <Link className='text-blue-200 transition-colors hover:text-blue-300' href="https://www.openai.com/">OpenAI&apos;s ChatGPT</Link> and displays the results on a map of Norway. Severity is also decided by the model.
                 <br />
-                Coordinates are extracted from the tweets and ran thorugh Google&apos;s Text Search API to get the exact location of the crime.
+                Coordinates are extracted from the reports and resolved with Mapbox and OpenStreetMap to find the incident location.
                 The data is then displayed on a map using <Link className='text-blue-200 transition-colors hover:text-blue-300' href="https://leafletjs.com/">Leaflet</Link>.
                 <br />
                 Data are scraped every 20 minutes.

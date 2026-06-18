@@ -18,6 +18,29 @@ const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
 const batchSize = 12;
 
+type Coordinates = {
+  lat: number;
+  lng: number;
+};
+
+type MapboxFeature = {
+  geometry?: {
+    coordinates?: [number, number];
+  };
+  properties?: {
+    name?: string;
+    full_address?: string;
+    place_formatted?: string;
+    feature_type?: string;
+  };
+};
+
+type NominatimResult = {
+  lat: string;
+  lon: string;
+  display_name?: string;
+};
+
 // --- Zod Schemas ---
 const IncidentSchema = z.object({
   location: z.string(),
@@ -101,12 +124,186 @@ async function parseIncidentsInBatches(
 }
 
 // ------------------------------------------------------------------
-// Helper: Google Places => findCoordinatesFromText
+function districtToMapboxProximity(district: string) {
+  const locationBias = districtToLocationBias.get(district);
+  const match = locationBias?.match(/^point:([\d.-]+),\s*([\d.-]+)$/);
+  if (!match) return null;
+
+  const [, lat, lng] = match;
+  return `${lng},${lat}`;
+}
+
+function normalizeLocationText(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function uniqueNonEmpty(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function buildGeocodeQueries(thread: MessageThread, location: string) {
+  const areaQuery = thread.area
+    ? `${thread.area}, ${thread.municipality}, Norway`
+    : "";
+  return uniqueNonEmpty([
+    [location, thread.area, thread.municipality, "Norway"].filter(Boolean).join(", "),
+    [location, thread.municipality, "Norway"].filter(Boolean).join(", "),
+    location,
+    areaQuery,
+    `${thread.municipality}, Norway`,
+  ]);
+}
+
+function getMapboxFeatureText(feature: MapboxFeature) {
+  return normalizeLocationText(
+    [
+      feature.properties?.name,
+      feature.properties?.full_address,
+      feature.properties?.place_formatted,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
+function isRoadLikeLocation(text: string) {
+  return /\b(e|rv|fv|fylkesvei|riksvei)\s*\d+\b/i.test(text) || /\bvegen\b|\bveien\b|\bgata\b|\bgaten\b/i.test(text);
+}
+
+function hasLocationPhrase(haystack: string, needle: string) {
+  if (!needle) return false;
+  return new RegExp(`(^| )${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( |$)`).test(haystack);
+}
+
+function isConfidentMapboxMatch(feature: MapboxFeature, query: string, thread: MessageThread) {
+  const featureText = getMapboxFeatureText(feature);
+  const featureName = normalizeLocationText(feature.properties?.name ?? "");
+  const area = normalizeLocationText(thread.area);
+  const municipality = normalizeLocationText(thread.municipality);
+  const primary = normalizeLocationText(query.split(",")[0] ?? "");
+  const featureType = feature.properties?.feature_type ?? "";
+
+  if (!featureText || !primary) return false;
+  if (hasLocationPhrase(featureText, area)) return true;
+  if (hasLocationPhrase(featureText, primary) && primary !== municipality) return true;
+  if (primary === municipality && hasLocationPhrase(featureText, municipality)) return true;
+
+  const isStreetOrAddress = featureType === "street" || featureType === "address";
+  if (isStreetOrAddress && isRoadLikeLocation(query) && featureName === primary) {
+    return true;
+  }
+
+  return false;
+}
+
+async function findCoordinatesWithMapbox(thread: MessageThread, location: string): Promise<Coordinates | null> {
+  if (!env.MAPBOX_ACCESS_TOKEN) return null;
+
+  const proximity = districtToMapboxProximity(thread.district);
+
+  for (const query of buildGeocodeQueries(thread, location)) {
+    if (query === `${thread.municipality}, Norway`) continue;
+
+    const endpoint = new URL("https://api.mapbox.com/search/geocode/v6/forward");
+    endpoint.searchParams.set("q", query);
+    endpoint.searchParams.set("country", "no");
+    endpoint.searchParams.set("language", "no");
+    endpoint.searchParams.set("limit", "5");
+    endpoint.searchParams.set("access_token", env.MAPBOX_ACCESS_TOKEN);
+
+    if (proximity) {
+      endpoint.searchParams.set("proximity", proximity);
+    }
+
+    try {
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      if (!response.ok) {
+        console.log("Mapbox API gave an unexpected response:", data, "for", query, `(${proximity ?? 'no proximity'})`);
+        continue;
+      }
+
+      const feature = (data.features as MapboxFeature[] | undefined)?.find((candidate) =>
+        isConfidentMapboxMatch(candidate, query, thread),
+      );
+      const coordinates = feature?.geometry?.coordinates;
+      if (coordinates) {
+        const [lng, lat] = coordinates;
+        return { lat, lng };
+      }
+    } catch (err) {
+      console.error("Error fetching place from Mapbox:", err);
+    }
+  }
+
+  console.log("Mapbox did not find a confident coordinate match for", location, `(${thread.area}, ${thread.municipality})`);
+  return null;
+}
+
+let lastNominatimRequestAt = 0;
+
+async function waitForNominatimSlot() {
+  const elapsed = Date.now() - lastNominatimRequestAt;
+  if (elapsed < 1100) {
+    await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
+  }
+  lastNominatimRequestAt = Date.now();
+}
+
+async function findCoordinatesWithNominatim(thread: MessageThread, location: string): Promise<Coordinates | null> {
+  for (const query of buildGeocodeQueries(thread, location)) {
+    const endpoint = new URL("https://nominatim.openstreetmap.org/search");
+    endpoint.searchParams.set("q", query);
+    endpoint.searchParams.set("countrycodes", "no");
+    endpoint.searchParams.set("format", "jsonv2");
+    endpoint.searchParams.set("limit", "1");
+    endpoint.searchParams.set("accept-language", "no");
+
+    try {
+      await waitForNominatimSlot();
+      const response = await fetch(endpoint, {
+        headers: {
+          "user-agent": "jonaslsa-blip/1.0",
+        },
+      });
+      const data = await response.json();
+      const result = (data as NominatimResult[] | undefined)?.[0];
+      if (response.ok && result) {
+        const lat = Number(result.lat);
+        const lng = Number(result.lon);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          return { lat, lng };
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching place from Nominatim:", err);
+    }
+  }
+
+  return null;
+}
+
+// Helper: Mapbox/Nominatim/Google Places => findCoordinatesFromText
 // ------------------------------------------------------------------
-async function findCoordinatesFromText(district: string, text: string) {
-  const locationBias = districtToLocationBias.get(district) ?? '';
+async function findCoordinatesFromText(thread: MessageThread, text: string) {
+  const mapboxCoords = await findCoordinatesWithMapbox(thread, text);
+  if (mapboxCoords) {
+    return mapboxCoords;
+  }
+
+  const nominatimCoords = await findCoordinatesWithNominatim(thread, text);
+  if (nominatimCoords) {
+    return nominatimCoords;
+  }
+
+  const locationBias = districtToLocationBias.get(thread.district) ?? '';
   if (locationBias === '') {
-    console.warn('Location bias for district', district, 'is empty, using no bias');
+    console.warn('Location bias for district', thread.district, 'is empty, using no bias');
   }
   const placeEndpoint =
     "https://maps.googleapis.com/maps/api/place/findplacefromtext/json" +
@@ -145,7 +342,7 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
   }
 
   // 1. Find coordinates
-  const coords = await findCoordinatesFromText(thread.district, parsed.location);
+  const coords = await findCoordinatesFromText(thread, parsed.location);
   if (!coords) {
     console.log(`Skipping thread ${thread.id}, coordinate lookup failed.`);
     return;

@@ -22,6 +22,7 @@ export const serverSchema = z.object({
   DISCORD_CLIENT_ID: z.string(),
   DISCORD_CLIENT_SECRET: z.string(),
   OPENAI_API_KEY: z.string(),
+  MAPBOX_ACCESS_TOKEN: z.string().optional(),
   GOOGLE_PLACES_API_KEY: z.string(),
   UPSTASH_REDIS_REST_URL: z.string(),
   UPSTASH_REDIS_REST_TOKEN: z.string(),
