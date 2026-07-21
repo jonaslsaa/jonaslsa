@@ -6,8 +6,8 @@ export interface AIModel {
 
 export const AVAILABLE_MODELS: AIModel[] = [
   {
-    id: "google/gemini-3.5-flash",
-    name: "Gemini 3.5 Flash",
+    id: "google/gemini-3.6-flash",
+    name: "Gemini 3.6 Flash",
     provider: "Google",
   },
   {
@@ -21,19 +21,24 @@ export const AVAILABLE_MODELS: AIModel[] = [
     provider: "DeepSeek",
   },
   {
-    id: "anthropic/claude-sonnet-4.6",
-    name: "Sonnet 4.6",
+    id: "anthropic/claude-sonnet-5",
+    name: "Sonnet 5",
     provider: "Anthropic",
   },
   {
-    id: "moonshotai/kimi-k2.6",
-    name: "Kimi K2.6",
+    id: "moonshotai/kimi-k3",
+    name: "Kimi K3",
     provider: "Moonshot AI",
   },
   {
-    id: "openai/gpt-5.5",
-    name: "GPT 5.5",
+    id: "openai/gpt-5.6-sol",
+    name: "GPT 5.6 Sol",
     provider: "OpenAI",
+  },
+  {
+    id: "sakana/fugu-ultra",
+    name: "Fugu Ultra",
+    provider: "Sakana",
   }
 ] as const;
 
