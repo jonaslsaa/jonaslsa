@@ -14,7 +14,7 @@
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
     "@next-auth/prisma-adapter": "^1.0.5",
-    "@openrouter/ai-sdk-provider": "^1.5.4",
+    "@openrouter/ai-sdk-provider": "^2.10.0",
     "@prisma/client": "^6.5.0",
     "@tanstack/react-query": "^5.90.16",
     "@trpc/client": "^11.8.1",
@@ -31,7 +31,6 @@
     "leaflet": "^1.9.3",
     "next": "16.1.1",
     "next-auth": "^4.24.13",
-    "openai": "^4.89.0",
     "pako": "^2.1.0",
     "prismjs": "^1.30.0",
     "react": "19.2.3",

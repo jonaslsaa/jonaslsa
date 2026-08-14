@@ -1,8 +1,8 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { generateText, jsonSchema, Output } from "ai";
 import { z } from "zod";
 import { env } from "../../../../env/server.mjs";
 import { PrismaClient } from '@prisma/client';
@@ -13,8 +13,15 @@ import { type NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-// --- OpenAI ---
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+const incidentModel = openrouter("deepseek/deepseek-v4-flash-0731", {
+  extraBody: {
+    reasoning: {
+      enabled: false,
+      exclude: true,
+    },
+  },
+});
 
 const batchSize = 12;
 
@@ -49,6 +56,54 @@ const IncidentSchema = z.object({
   summary: z.string(),
 });
 
+type Incident = z.infer<typeof IncidentSchema>;
+
+const IncidentOutputSchema = jsonSchema<Incident>(
+  {
+    type: "object",
+    properties: {
+      location: { type: "string" },
+      type: { type: "string" },
+      severity: { type: "string", enum: ["LOW", "MED", "HIGH"] },
+      summary: { type: "string" },
+    },
+    required: ["location", "type", "severity", "summary"],
+    additionalProperties: false,
+  },
+  {
+    validate(value) {
+      const result = IncidentSchema.safeParse(value);
+      return result.success
+        ? { success: true, value: result.data }
+        : { success: false, error: result.error };
+    },
+  },
+);
+
+const INCIDENT_SYSTEM_PROMPT = `
+You extract one map incident from chronological Norwegian police-log messages. Return only the required structured fields.
+
+Language
+- Write type and summary in English. This is mandatory even when every source message is Norwegian.
+- Keep Norwegian place names unchanged in location. Never translate a road, landmark, neighborhood, area, or municipality name.
+- Translate Norwegian police terminology idiomatically. In this context, "rabiat" means aggressive or highly agitated, never rabid.
+
+Accuracy
+- Use only facts in the report. Do not infer an arrest, injury, cause, or exact address that is not stated.
+- "Anmeldt" means reported or that a case was filed; it does not mean arrested. "Innbrakt" means brought in or detained; use "arrested" only when the report says "pågrepet" or "arrestert".
+- Later messages update earlier ones. Report the latest known outcome while retaining important confirmed facts such as a critical injury.
+
+Fields
+- location: A comma-separated geocoding query ordered from the most precise named place or road to area and municipality. Include useful road numbers, roads, landmarks, area, and municipality. Exclude police district, county, and Norway.
+- type: A short, specific English noun phrase. Prioritize the most safety-relevant explicit event: for example "Vehicle fire", "Dangerous driving", "Assault on police", "Speed enforcement", or "Single-vehicle accident".
+- severity:
+  - HIGH: death, critical or life-threatening injury, an uncontrolled major fire, or another major immediate threat to life.
+  - MED: meaningful active safety risk or disruption, non-critical injury, violence, dangerous driving, a fire or road closure, a vulnerable missing person, or speed enforcement involving licence seizures.
+  - LOW: routine enforcement, a minor or resolved event with no injury and no meaningful remaining danger, or a false alarm.
+  Resolution may reduce severity, but never reduce confirmed death or critical/life-threatening injury.
+- summary: One English sentence of at most 35 words. Include the latest outcome and, when relevant, injuries, traffic impact, or whether the danger was resolved. Preserve important numbers.
+`.trim();
+
 function parseMessageThread(thread: MessageThread) {
   const { district, municipality, category, messages, area } = thread;
 
@@ -64,33 +119,20 @@ function parseMessageThread(thread: MessageThread) {
 }
 
 // ------------------------------------------------------------------
-// Single-thread GPT call
+// Single-thread model call
 // ------------------------------------------------------------------
-async function parseIncident(thread: MessageThread) {
-  const textForGPT = parseMessageThread(thread);
-
-  const systemPrompt = `
-Extract information from this police incident report/messages. MUST be written in English.
-Infer from the report the following:
-- Location: The location of the incident in a clear and disambiguated way (will be feed to Google Maps, so try to infer the best location to present). Format: "Primary, secondary, [tertiary]". Example: "Trafikkontroll på Spongdalsvegen ved Berg (Trondheim municipality)" -> "Berg, Spongdalsvegen, Trondheim"
-  Prefer the police-provided area and municipality when they are available. Keep road numbers, named roads, neighborhoods, landmarks, and municipality names, but do not add police district names, county names, or "Norway" unless the report itself needs that to avoid ambiguity.
-- Type: The type of incident (short phrase, e.g. "Traffic obstruction", "Fire", etc.)
-- Severity: The severity (LOW/MED/HIGH)
-- Summary: A short summary, or "N/A" if not applicable.
-`.trim();
-
-  const response = await openai.responses.parse({
-    model: "gpt-4o-mini",
-    input: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: textForGPT },
-    ],
-    text: {
-      format: zodTextFormat(IncidentSchema, "incident"),
-    },
+async function parseIncident(thread: MessageThread): Promise<Incident> {
+  const { output } = await generateText({
+    model: incidentModel,
+    system: INCIDENT_SYSTEM_PROMPT,
+    prompt: parseMessageThread(thread),
+    output: Output.object({
+      schema: IncidentOutputSchema,
+      name: "incident",
+    }),
   });
 
-  return response.output_parsed; // { location, type, severity, summary }
+  return output;
 }
 
 // ------------------------------------------------------------------
