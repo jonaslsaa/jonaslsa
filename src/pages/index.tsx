@@ -23,7 +23,7 @@ const Home: NextPage = () => {
             <ProjectLink link="https://www.linkedin.com/in/jonas-silva-b1a628ba/" title="Linkedin" />
 
             <hr className="border-gray-700 my-2" />
-            <ProjectLink bold link="https://smartlinks.jonaslsa.com/" title="Smartlinks - JavaScript and TypeScript programs as URLs" />
+            <ProjectLink bold link="https://smartlinks.jonaslsa.com/" title="Smartlinks - JavaScript programs as URLs" />
             <ProjectLink bold link="https://slipstream.jonaslsa.com/" title="Slipstream - Media streaming for macOS" />
             <ProjectLink bold link="/blip/" title="Blip - Real-time police incidents" />
             <ProjectLink link="s/" title="URL Shortener" />
