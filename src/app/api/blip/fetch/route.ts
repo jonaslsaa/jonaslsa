@@ -26,6 +26,33 @@ const incidentModel = openrouter("deepseek/deepseek-v4-flash-0731", {
 });
 
 const batchSize = 12;
+// Stop starting new chunks after this, so the function returns before the
+// 300s maxDuration instead of being killed. Unfinished threads are picked up
+// by the next run (stored threads are skipped).
+const TIME_BUDGET_MS = 230_000;
+
+function isOverBudget(startedAt: number) {
+  return Date.now() - startedAt > TIME_BUDGET_MS;
+}
+
+// Geocode and store a chunk of parsed threads concurrently; returns how many
+// were stored.
+async function upsertChunk(
+  chunk: MessageThread[],
+  parseResults: Record<string, Awaited<ReturnType<typeof parseIncident>>>,
+) {
+  const stored = await Promise.all(chunk.map(async (thread) => {
+    const parsed = parseResults[thread.id];
+    if (!parsed) return false;
+    try {
+      return await upsertThreadInDb(thread, parsed);
+    } catch (err) {
+      console.error(`Could not store thread ${thread.id}:`, err);
+      return false;
+    }
+  }));
+  return stored.filter(Boolean).length;
+}
 
 type Coordinates = {
   lat: number;
@@ -305,13 +332,20 @@ async function findCoordinatesWithMapbox(thread: MessageThread, location: string
 }
 
 let lastNominatimRequestAt = 0;
+let nominatimQueue: Promise<void> = Promise.resolve();
 
-async function waitForNominatimSlot() {
-  const elapsed = Date.now() - lastNominatimRequestAt;
-  if (elapsed < 1100) {
-    await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
-  }
-  lastNominatimRequestAt = Date.now();
+// Nominatim allows 1 request/second. Threads are geocoded concurrently, so
+// callers queue up here and are released one at a time.
+function waitForNominatimSlot() {
+  const slot = nominatimQueue.then(async () => {
+    const elapsed = Date.now() - lastNominatimRequestAt;
+    if (elapsed < 1100) {
+      await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
+    }
+    lastNominatimRequestAt = Date.now();
+  });
+  nominatimQueue = slot.catch(() => undefined);
+  return slot;
 }
 
 async function findCoordinatesWithNominatim(thread: MessageThread, location: string): Promise<Coordinates | null> {
@@ -457,7 +491,7 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
 const DEFAULT_POLL_HOURS = 26;
 const MAX_POLL_HOURS = 72;
 
-async function upsertRecentIncidents(client: PolitietApiClient, pollHours: number) {
+async function upsertRecentIncidents(client: PolitietApiClient, pollHours: number, startedAt: number) {
   const fromUtc = new Date(Date.now() - pollHours * 3600_000);
 
   const recentData = await client.getTimeRangedData(fromUtc, new Date());
@@ -483,30 +517,30 @@ async function upsertRecentIncidents(client: PolitietApiClient, pollHours: numbe
       countUpserted: 0,
       totalFetched: messageThreads.length,
       countNew: 0,
+      partial: false,
     };
   }
 
   // Parse and store chunk by chunk, so progress is kept if the function
   // runs out of time on a large window.
   let countUpserted = 0;
+  let partial = false;
   for (let i = 0; i < newThreads.length; i += batchSize) {
+    if (isOverBudget(startedAt)) {
+      partial = true;
+      console.warn(`upsertRecentIncidents: time budget reached, ${newThreads.length - i} new threads left for the next run`);
+      break;
+    }
     const chunk = newThreads.slice(i, i + batchSize);
     const parseResults = await parseIncidentsInBatches(chunk, batchSize);
-    for (const thread of chunk) {
-      const parsed = parseResults[thread.id];
-      if (!parsed) {
-        continue;
-      }
-      if (await upsertThreadInDb(thread, parsed)) {
-        countUpserted++;
-      }
-    }
+    countUpserted += await upsertChunk(chunk, parseResults);
   }
 
   return {
     countUpserted,
     totalFetched: messageThreads.length,
     countNew: newThreads.length,
+    partial,
   };
 }
 
@@ -514,64 +548,62 @@ async function upsertRecentIncidents(client: PolitietApiClient, pollHours: numbe
 // Task #2: Refresh still-active incidents
 //    Also uses batching for new updates
 // ------------------------------------------------------------------
-async function refreshActiveIncidents(client: PolitietApiClient) {
+async function refreshActiveIncidents(client: PolitietApiClient, startedAt: number) {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-  // Fetch all active incidents from DB
+  // Mark incidents without updates for a week inactive in one query
+  const { count: countDisabled } = await withDbRetry(() => prisma.incident.updateMany({
+    where: { isActive: true, tweetUpdatedAt: { lt: oneWeekAgo } },
+    data: { isActive: false },
+  }), "blip fetch: disable stale incidents");
+
   const activeIncidents = await withDbRetry(() => prisma.incident.findMany({
     where: { isActive: true },
+    select: { tweetId: true, updates: true },
   }), "blip fetch: active incidents");
-  console.log(`refreshActiveIncidents: found ${activeIncidents.length} active incidents`);
+  console.log(`refreshActiveIncidents: disabled ${countDisabled}, ${activeIncidents.length} still active`);
 
-  let countDisabled = 0;
   let countUpdated = 0;
+  let partial = false;
 
-  // We'll hold these threads for parsing in one pass
+  // Fetch the latest version of each active thread, a few at a time
   const threadsToUpdate: MessageThread[] = [];
-
-  for (const incident of activeIncidents) {
-    // If older than a week, mark inactive
-    if (incident.tweetUpdatedAt < oneWeekAgo) {
-      await prisma.incident.update({
-        where: { id: incident.id },
-        data: { isActive: false },
-      });
-      countDisabled++;
-      continue;
+  const fetchConcurrency = 4;
+  for (let i = 0; i < activeIncidents.length; i += fetchConcurrency) {
+    if (isOverBudget(startedAt)) {
+      partial = true;
+      break;
     }
-
-    // If still active, fetch updated thread
-    try {
-      const thread = await client.getThreadById(incident.tweetId);
-      const newUpdatesCount = thread.messages.length;
-
-      // If we have new messages, we will parse in batch
-      if (newUpdatesCount > incident.updates) {
-        threadsToUpdate.push(thread);
+    const slice = activeIncidents.slice(i, i + fetchConcurrency);
+    await Promise.all(slice.map(async (incident) => {
+      try {
+        const thread = await client.getThreadById(incident.tweetId);
+        if (thread.messages.length > incident.updates) {
+          threadsToUpdate.push(thread);
+        }
+      } catch (err) {
+        console.error(`Could not refresh thread ${incident.tweetId}:`, err);
       }
-    } catch (err) {
-      console.error(`Could not refresh thread ${incident.tweetId}:`, err);
-    }
+    }));
   }
 
-  // Now parse them all in a single or chunked batch
-  if (threadsToUpdate.length > 0) {
-    const parseResults = await parseIncidentsInBatches(threadsToUpdate, batchSize);
-
-    // Upsert each
-    for (const thread of threadsToUpdate) {
-      const parsed = parseResults[thread.id];
-      if (!parsed) {
-        continue;
-      }
-      if (await upsertThreadInDb(thread, parsed)) {
-        countUpdated++;
-      }
+  // Parse and store updated threads chunk by chunk
+  for (let i = 0; i < threadsToUpdate.length; i += batchSize) {
+    if (isOverBudget(startedAt)) {
+      partial = true;
+      break;
     }
+    const chunk = threadsToUpdate.slice(i, i + batchSize);
+    const parseResults = await parseIncidentsInBatches(chunk, batchSize);
+    countUpdated += await upsertChunk(chunk, parseResults);
   }
 
-  return { countDisabled, countUpdated };
+  if (partial) {
+    console.warn("refreshActiveIncidents: time budget reached, remaining refreshes left for the next run");
+  }
+
+  return { countDisabled, countUpdated, partial };
 }
 
 // ------------------------------------------------------------------
@@ -600,13 +632,17 @@ async function handleFetch(req: NextRequest) {
 
   try {
     // A) Insert new incidents from the poll window
-    const { countUpserted, totalFetched, countNew } = await upsertRecentIncidents(client, pollHours);
+    const startedAt = timestampStart.getTime();
+    const recent = await upsertRecentIncidents(client, pollHours, startedAt);
+    const { countUpserted, totalFetched, countNew } = recent;
 
     // B) Refresh active incidents
-    const { countDisabled, countUpdated } = await refreshActiveIncidents(client);
+    const refresh = await refreshActiveIncidents(client, startedAt);
+    const { countDisabled, countUpdated } = refresh;
 
     const stats = {
       pollHours,
+      partial: recent.partial || refresh.partial,
       totalFetched,
       countNew,
       countUpserted,
