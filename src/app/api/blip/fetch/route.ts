@@ -485,10 +485,12 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
 
 // ------------------------------------------------------------------
 // Task #1: Fetch the last `hours` hours, insert only *new* threads
-//    The cron runs daily, so the default window overlaps the previous run;
-//    threads already in the DB are skipped and upserts key on tweetId.
+//    The cron runs daily, so the default 48h window overlaps the previous
+//    run by a full day: threads a time-budgeted (partial) run left behind
+//    are picked up the next day. Threads already in the DB are skipped
+//    before any model call, and upserts key on tweetId.
 // ------------------------------------------------------------------
-const DEFAULT_POLL_HOURS = 26;
+const DEFAULT_POLL_HOURS = 48;
 const MAX_POLL_HOURS = 72;
 
 async function upsertRecentIncidents(client: PolitietApiClient, pollHours: number, startedAt: number) {
@@ -509,8 +511,12 @@ async function upsertRecentIncidents(client: PolitietApiClient, pollHours: numbe
   }), "blip fetch: existing incidents");
   const existingIds = new Set(existingIncidents.map(e => e.tweetId));
 
-  // Filter out threads we already have
-  const newThreads = messageThreads.filter(t => !existingIds.has(t.id));
+  // Filter out threads we already have. Process oldest first, so if the time
+  // budget cuts the run short, the threads left over are the newest ones and
+  // stay inside the next day's window.
+  const newThreads = messageThreads
+    .filter(t => !existingIds.has(t.id))
+    .sort((a, b) => a.createdOn.getTime() - b.createdOn.getTime());
 
   if (newThreads.length === 0) {
     return {
