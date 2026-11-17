@@ -27,7 +27,9 @@ const messageThreadSchema = z.object({
 
 const apiResponseSchema = z.object({
   messageThreads: z.array(messageThreadSchema),
-  count: z.number(),
+  // Politiloggen replaced `count` with `hasMoreResults` around 2026-08-23.
+  count: z.number().optional(),
+  hasMoreResults: z.boolean().optional(),
 });
 
 const messageThreadResponseSchema = messageThreadSchema;
@@ -50,9 +52,20 @@ export class PolitietApiClient {
    * @param to End date (exclusive)
    * @returns Validated API response
    */
-  async getTimeRangedData(from: Date, to: Date, take = 512): Promise<ApiResponse> {
+  async getTimeRangedData(from: Date, to: Date, take = 512, maxPages = 10): Promise<ApiResponse> {
+    const messageThreads: MessageThread[] = [];
+    for (let page = 0; page < maxPages; page++) {
+      const response = await this.getTimeRangedPage(from, to, page * take, take);
+      messageThreads.push(...response.messageThreads);
+      if (!response.hasMoreResults || response.messageThreads.length === 0) break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    return { messageThreads, count: messageThreads.length, hasMoreResults: false };
+  }
+
+  private async getTimeRangedPage(from: Date, to: Date, skip: number, take: number): Promise<ApiResponse> {
     const url = new URL(`${this.baseUrl}/messagethreads`);
-    url.searchParams.set('skip', '0');
+    url.searchParams.set('skip', String(skip));
     url.searchParams.set('take', String(take));
     url.searchParams.set('sortByEnum', 'LastMessageOn');
     url.searchParams.set('sortByAsc', 'false');

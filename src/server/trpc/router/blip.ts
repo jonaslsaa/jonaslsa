@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { router, publicProcedure } from "../trpc";
+import { withDbRetry } from "../../db/retry";
 import type { MarkerData } from "../../../components/blip/Map";
 
 
@@ -11,7 +12,7 @@ export const blipRouter = router({
     }))
     .query(async ({ ctx, input: { fromDate } }) => {
       const fromDateObj = new Date(fromDate);
-      const incidents = await ctx.prisma.incident.findMany({
+      const incidents = await withDbRetry(() => ctx.prisma.incident.findMany({
         where: {
           time: {
             gte: fromDateObj,
@@ -20,7 +21,7 @@ export const blipRouter = router({
             not: null,
           },
         },
-      });
+      }), "blip.getMarkerData");
       const markerData: MarkerData[] = incidents.map(incident => {
         return {
           id: incident.id,

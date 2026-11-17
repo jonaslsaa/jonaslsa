@@ -1,5 +1,6 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, jsonSchema, Output } from "ai";
@@ -9,6 +10,7 @@ import { PrismaClient } from '@prisma/client';
 import type { MessageThread } from '../../../../lib/politiet-api-client';
 import { PolitietApiClient } from '../../../../lib/politiet-api-client';
 import { districtToLocationBias } from '../../../../lib/districts';
+import { withDbRetry } from '../../../../server/db/retry';
 import { type NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
@@ -148,10 +150,16 @@ async function parseIncidentsInBatches(
   for (let i = 0; i < threads.length; i += batchSize) {
     const chunk = threads.slice(i, i + batchSize);
 
-    // Run parseIncident in parallel for this chunk
+    // Run parseIncident in parallel for this chunk. One failed model call
+    // must not abort the whole run, so failures are logged and skipped.
     const promises = chunk.map(async (thread) => {
-      const parsed = await parseIncident(thread);
-      return { id: thread.id, parsed };
+      try {
+        const parsed = await parseIncident(thread);
+        return { id: thread.id, parsed };
+      } catch (err) {
+        console.error(`Could not parse thread ${thread.id}:`, err);
+        return { id: thread.id, parsed: null };
+      }
     });
 
     // Wait for the chunk
@@ -159,7 +167,7 @@ async function parseIncidentsInBatches(
 
     // Store in the result dictionary, keyed by thread ID
     for (const { id, parsed } of chunkResults) {
-      result[id] = parsed;
+      if (parsed) result[id] = parsed;
     }
   }
 
@@ -386,17 +394,17 @@ function toOsloTime(date: Date): Date {
 // ------------------------------------------------------------------
 // Helper: Upsert a single thread (with a parse result)
 // ------------------------------------------------------------------
-async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnType<typeof parseIncident>>) {
+async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnType<typeof parseIncident>>): Promise<boolean> {
   if (!parsed || !parsed.location) {
     console.log(`Skipping thread ${thread.id}, parse result is missing or has no location.`);
-    return;
+    return false;
   }
 
   // 1. Find coordinates
   const coords = await findCoordinatesFromText(thread, parsed.location);
   if (!coords) {
     console.log(`Skipping thread ${thread.id}, coordinate lookup failed.`);
-    return;
+    return false;
   }
 
   // 2. Build up fields
@@ -438,29 +446,33 @@ async function upsertThreadInDb(thread: MessageThread, parsed: Awaited<ReturnTyp
       summary: parsed.summary,
     },
   });
+  return true;
 }
 
 // ------------------------------------------------------------------
-// Task #1: Fetch last 12 hours, insert only *new* threads
-//    Batches GPT calls in parseIncidentsInBatches
+// Task #1: Fetch the last `hours` hours, insert only *new* threads
+//    The cron runs daily, so the default window overlaps the previous run;
+//    threads already in the DB are skipped and upserts key on tweetId.
 // ------------------------------------------------------------------
-async function upsertRecentIncidents(client: PolitietApiClient) {
-  const POLL_LAST_N_HOURS = 12;
-  const twelveHoursAgoUtc = new Date();
-  twelveHoursAgoUtc.setHours(twelveHoursAgoUtc.getHours() - POLL_LAST_N_HOURS);
+const DEFAULT_POLL_HOURS = 26;
+const MAX_POLL_HOURS = 72;
 
-  const recentData = await client.getTimeRangedData(twelveHoursAgoUtc, new Date());
+async function upsertRecentIncidents(client: PolitietApiClient, pollHours: number) {
+  const fromUtc = new Date(Date.now() - pollHours * 3600_000);
+
+  const recentData = await client.getTimeRangedData(fromUtc, new Date());
   const { messageThreads } = recentData;
   console.log(`upsertRecentIncidents: got ${messageThreads.length} threads`);
 
   // Gather the "tweetId" from each fetched thread
   const fetchedIds = messageThreads.map(t => t.id);
 
-  // Find any that already exist in DB
-  const existingIncidents = await prisma.incident.findMany({
+  // Find any that already exist in DB (first query of the run: retry while
+  // Railway MySQL wakes from sleep)
+  const existingIncidents = await withDbRetry(() => prisma.incident.findMany({
     where: { tweetId: { in: fetchedIds } },
     select: { tweetId: true },
-  });
+  }), "blip fetch: existing incidents");
   const existingIds = new Set(existingIncidents.map(e => e.tweetId));
 
   // Filter out threads we already have
@@ -470,26 +482,31 @@ async function upsertRecentIncidents(client: PolitietApiClient) {
     return {
       countUpserted: 0,
       totalFetched: messageThreads.length,
+      countNew: 0,
     };
   }
 
-  // Parse all new threads in batches (OpenAI calls)
-  const parseResults = await parseIncidentsInBatches(newThreads, batchSize);
-
-  // Then upsert the DB
+  // Parse and store chunk by chunk, so progress is kept if the function
+  // runs out of time on a large window.
   let countUpserted = 0;
-  for (const thread of newThreads) {
-    const parsed = parseResults[thread.id];
-    if (!parsed) {
-      continue;
+  for (let i = 0; i < newThreads.length; i += batchSize) {
+    const chunk = newThreads.slice(i, i + batchSize);
+    const parseResults = await parseIncidentsInBatches(chunk, batchSize);
+    for (const thread of chunk) {
+      const parsed = parseResults[thread.id];
+      if (!parsed) {
+        continue;
+      }
+      if (await upsertThreadInDb(thread, parsed)) {
+        countUpserted++;
+      }
     }
-    await upsertThreadInDb(thread, parsed);
-    countUpserted++;
   }
 
   return {
     countUpserted,
     totalFetched: messageThreads.length,
+    countNew: newThreads.length,
   };
 }
 
@@ -502,9 +519,9 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   // Fetch all active incidents from DB
-  const activeIncidents = await prisma.incident.findMany({
+  const activeIncidents = await withDbRetry(() => prisma.incident.findMany({
     where: { isActive: true },
-  });
+  }), "blip fetch: active incidents");
   console.log(`refreshActiveIncidents: found ${activeIncidents.length} active incidents`);
 
   let countDisabled = 0;
@@ -548,8 +565,9 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
       if (!parsed) {
         continue;
       }
-      await upsertThreadInDb(thread, parsed);
-      countUpdated++;
+      if (await upsertThreadInDb(thread, parsed)) {
+        countUpdated++;
+      }
     }
   }
 
@@ -557,35 +575,45 @@ async function refreshActiveIncidents(client: PolitietApiClient) {
 }
 
 // ------------------------------------------------------------------
-// Main GET function: run every 30 min by cron
+// Handler: Vercel Cron calls GET daily with `Authorization: Bearer $CRON_SECRET`.
+// POST is kept for manual runs. `?hours=N` (max 72) widens the window for a
+// one-off backfill.
 // ------------------------------------------------------------------
-export async function POST(req: NextRequest) {
+async function handleFetch(req: NextRequest) {
   // 1) Authorization check
+  const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get('authorization') ?? '';
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
   }
+
+  const hoursParam = Number(req.nextUrl.searchParams.get('hours'));
+  const pollHours = Number.isFinite(hoursParam) && hoursParam > 0
+    ? Math.min(hoursParam, MAX_POLL_HOURS)
+    : DEFAULT_POLL_HOURS;
 
   const timestampStart = new Date();
 
   const client = new PolitietApiClient();
 
   try {
-    // A) Insert new/incidents from the past 12 hours
-    const { countUpserted, totalFetched } = await upsertRecentIncidents(client);
+    // A) Insert new incidents from the poll window
+    const { countUpserted, totalFetched, countNew } = await upsertRecentIncidents(client, pollHours);
 
     // B) Refresh active incidents
     const { countDisabled, countUpdated } = await refreshActiveIncidents(client);
 
     const stats = {
+      pollHours,
       totalFetched,
+      countNew,
       countUpserted,
       countDisabled,
       countUpdated,
     };
-    console.log("POST /api/blip/fetch:", stats);
+    console.log("/api/blip/fetch:", stats);
 
     return NextResponse.json({
       success: true,
@@ -595,9 +623,12 @@ export async function POST(req: NextRequest) {
       finishedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error in POST /api/blip/fetch:", error);
+    console.error("Error in /api/blip/fetch:", error);
     return new Response(JSON.stringify({ success: false, error: String(error) }), {
       status: 500,
     });
   }
 }
+
+export const GET = handleFetch;
+export const POST = handleFetch;
